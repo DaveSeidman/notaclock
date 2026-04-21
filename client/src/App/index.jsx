@@ -172,6 +172,10 @@ export default function App() {
     }
 
     if (direction < 0) {
+      if (snapshot.live && snapshot.images.length < 2) {
+        return;
+      }
+
       const nextIndex = snapshot.live ? 1 : Math.min(snapshot.historyIndex + 1, snapshot.images.length - 1);
       setLive(false);
       setHistoryIndex(nextIndex);
@@ -338,6 +342,7 @@ export default function App() {
     <main className="stage">
       <div className={`stage__frame ${sourceOpen ? 'is-overlay-active' : ''}`}>
         <ClockImage image={displayedImage} />
+        {!displayedImage && <p className="stage__message">next image generating...</p>}
         <About
           config={config}
           historyText={historyText}

@@ -58,7 +58,12 @@ export default function About({
         </button>
       </div>
 
-      <aside className="info-card" hidden={!isOpen} id="info-card" ref={cardRef}>
+      <aside
+        aria-hidden={!isOpen}
+        className={`info-card ${isOpen ? 'is-open' : ''}`}
+        id="info-card"
+        ref={cardRef}
+      >
         <div className="info-card__header">
           <button className="info-card__close" onClick={onClose} type="button" aria-label="Close details">
             Close

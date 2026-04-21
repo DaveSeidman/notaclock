@@ -32,7 +32,7 @@
 .info-card {
   position: absolute;
   left: var(--edge-space);
-  bottom: calc(var(--edge-space) + 1.7rem);
+  bottom: calc(var(--edge-space) + 1.7rem + 40px);
   z-index: 3;
   width: min(30rem, calc(100vw - 1.8rem));
   max-height: min(70vh, 40rem);
@@ -43,6 +43,18 @@
   background: transparent;
   box-shadow: none;
   backdrop-filter: none;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 1s ease,
+    visibility 1s ease;
+}
+
+.info-card.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .info-card__header {
