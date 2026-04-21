@@ -93,6 +93,7 @@ The frontend polls the latest image, crossfades between frames, keeps the on-scr
 - `GET /api/images`
 - `GET /api/images/current`
 - `POST /api/generate`
+- `GET /social-image.png`
 
 Generated files are served from:
 

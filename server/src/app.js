@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { loadConfig } from './config.js';
 import { createApiRouter } from './routes/api.js';
+import { createSocialImageRouter } from './routes/social-image.js';
 import { ComfyClient } from './lib/comfy-client.js';
 import { FalRenderer } from './lib/fal-client.js';
 import { ImageGeneratorService } from './lib/image-generator.js';
@@ -62,13 +63,14 @@ export async function createApp() {
   app.use('/media/generated', express.static(config.generatedDir, { maxAge: '1h' }));
   app.use('/media/masks', express.static(config.maskDir, { maxAge: '1h' }));
   app.use('/media/overlays', express.static(config.overlayDir, { maxAge: '1h' }));
+  app.use(createSocialImageRouter({ config, store }));
   app.use('/api', createApiRouter({ config, store, generator, scheduler }));
 
   app.get('/', (req, res) => {
     res.json({
       name: 'notaclock-api',
       ok: true,
-      endpoints: ['/api/health', '/api/config', '/api/images', '/api/images/current']
+      endpoints: ['/api/health', '/api/config', '/api/images', '/api/images/current', '/social-image.png']
     });
   });
 
