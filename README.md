@@ -105,15 +105,16 @@ This can stay as one GitHub repo. The Render backend and GitHub Pages frontend e
 
 ### 1. Render API
 
-The backend starter config is in [render.yaml](/Users/daveseidman/Documents/personal/notaclock/render.yaml). In Render, create a new Blueprint from this repository and use the service it defines:
+The backend starter config is in [render.yaml](/Users/daveseidman/Documents/personal/notaclock/render.yaml). It is currently configured for Render's free web service tier:
 
 - service name: `notaclock-api`
+- instance type: `free`
 - build command: `npm ci && npm run build:server`
 - start command: `npm --workspace server run start`
 - health check: `/api/health`
-- persistent disk: `/var/data`, used by `MEDIA_ROOT=/var/data/notaclock`
+- storage: ephemeral `/tmp/notaclock`, used by `MEDIA_ROOT=/tmp/notaclock`
 
-Render will prompt for the secret values marked `sync: false`. Set these first:
+You can create this as a normal Web Service and enter the settings above manually. If you use a Blueprint, Render will prompt for the secret values marked `sync: false`. Set these first:
 
 - `FAL_KEY`: your Fal API key
 - `PUBLIC_API_URL`: the Render URL, for example `https://notaclock-api.onrender.com`
@@ -122,12 +123,12 @@ Render will prompt for the secret values marked `sync: false`. Set these first:
 
 If Render gives the service a different URL, use that actual URL for both `PUBLIC_API_URL` and the GitHub `VITE_API_BASE_URL` variable. If GitHub Pages serves this repo at `https://<username>.github.io/notaclock/`, keep `CORS_ORIGIN` as `https://<username>.github.io` because browser origins do not include path segments. If you do not know the Pages URL yet, you can temporarily set `CORS_ORIGIN=*` and tighten it after the frontend is live.
 
-The app stores final images, masks, the current image index, aggregate feedback, and per-click feedback events under `MEDIA_ROOT`. The main files to pull later for analysis are:
+The app stores final images, masks, the current image index, aggregate feedback, and per-click feedback events under `MEDIA_ROOT`. On the free Render tier, this data is intentionally temporary and will be lost whenever the service spins down, restarts, or redeploys. The main files for analysis while the process is alive are:
 
 - `index.json`: current rolling image records, prompts, filenames, and aggregate thumbs-up/thumbs-down counts
 - `feedback-events.jsonl`: one JSON event per viewer vote or vote change
 
-Important note: the one-week rewind depends on persistence. Render free web services use ephemeral storage and spin down, so the deploy config intentionally uses a paid `starter` service with a persistent disk.
+Important note: this free-tier setup is good for testing the public experience, but it is not a durable week-long experiment. To preserve a week of images and feedback, upgrade the service to `starter`, add a persistent disk, set `MEDIA_ROOT=/var/data/notaclock`, and increase `RETENTION_HOURS=168`.
 
 ### 2. GitHub Pages Client
 
@@ -148,4 +149,4 @@ daily Fal cost ~= average_compute_seconds_per_image * 1440 * 0.000575
 weekly Fal cost ~= daily Fal cost * 7
 ```
 
-For quick calibration, 10 compute seconds per image is about `$8.28/day`; 20 compute seconds per image is about `$16.56/day`. Render compute and disk are separate from Fal usage.
+For quick calibration, 10 compute seconds per image is about `$8.28/day`; 20 compute seconds per image is about `$16.56/day`. Render free web service hosting avoids Render compute/disk costs for the demo, but Fal generation still costs money whenever images are generated.

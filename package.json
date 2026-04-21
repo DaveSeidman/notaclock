@@ -16,6 +16,6 @@
     "start": "npm --workspace server run start"
   },
   "engines": {
-    "node": ">=18.18"
+    "node": "20.x"
   }
 }

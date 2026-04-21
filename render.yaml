@@ -2,15 +2,11 @@ services:
   - type: web
     name: notaclock-api
     runtime: node
-    plan: starter
+    plan: free
     rootDir: .
     buildCommand: npm ci && npm run build:server
     startCommand: npm --workspace server run start
     healthCheckPath: /api/health
-    disk:
-      name: notaclock-media
-      mountPath: /var/data
-      sizeGB: 20
     buildFilter:
       paths:
         - package.json
@@ -28,7 +24,7 @@ services:
       - key: CLOCK_TIMEZONE
         value: America/New_York
       - key: RETENTION_HOURS
-        value: 168
+        value: 24
       - key: GENERATION_INTERVAL_MINUTES
         value: 1
       - key: RENDER_MODE
@@ -56,4 +52,4 @@ services:
       - key: FAL_SCHEDULER
         value: Euler
       - key: MEDIA_ROOT
-        value: /var/data/notaclock
+        value: /tmp/notaclock
