@@ -33,7 +33,9 @@ $edge-space: clamp(0.9rem, 2vw, 1.5rem);
 
 html,
 body {
+  width: 100%;
   min-height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -45,12 +47,15 @@ body {
 
 .stage {
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
 }
 
 .stage__frame {
   position: relative;
-  min-height: 100vh;
   height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   background: var(--frame-bg);
 }
