@@ -75,8 +75,7 @@ export default function About({
         </div>
 
         <p className="info-card__body">
-          A quiet clock disguised as a picture. Somewhere inside the image, the hour and minute are folded into the
-          composition. Squint a little; the numbers are there, but they prefer not to announce themselves.
+          A quiet clock disguised as a picture. Images generated at random every few minutes. Load fullscreen on a passive display and enjoy. Coded by <a href="https://daveseidman.com" target="_blank">Dave Seidman</a>
         </p>
 
         <label className="field" htmlFor="refresh-interval">
