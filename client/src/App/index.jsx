@@ -7,6 +7,9 @@ import './index.scss';
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const HISTORY_LIMIT = Number.parseInt(import.meta.env.VITE_HISTORY_LIMIT || '1440', 10);
 const VISITOR_ID_KEY = 'notaclockVisitorId';
+const DRAG_DEAD_ZONE_PX = 8;
+const DRAG_STEP_PX = 56;
+const DRAG_VERTICAL_CANCEL_PX = 14;
 
 function feedbackKey(imageId) {
   return `feedback:${imageId}`;
@@ -63,6 +66,26 @@ function normalizeRefreshInterval(nextMinutes, interval = { min: 5, max: 60, ste
   return Math.min(max, min + Math.round((clamped - min) / step) * step);
 }
 
+function getHistoryIndex(snapshot) {
+  if (snapshot.live) {
+    return 0;
+  }
+
+  const imageIndex = snapshot.displayedImage?.id
+    ? snapshot.images.findIndex((image) => image.id === snapshot.displayedImage.id)
+    : -1;
+
+  if (imageIndex >= 0) {
+    return imageIndex;
+  }
+
+  return Math.min(snapshot.historyIndex, Math.max(0, snapshot.images.length - 1));
+}
+
+function isInteractiveElement(target) {
+  return Boolean(target?.closest?.('button, select, input, textarea, label, a, .info-card, .source-card'));
+}
+
 async function fetchJson(path) {
   const response = await fetch(`${API_BASE}${path}`);
 
@@ -85,8 +108,15 @@ export default function App() {
   const [sourceOpen, setSourceOpen] = useState(() => localStorage.getItem('overlayEnabled') === 'true');
   const [aboutOpen, setAboutOpen] = useState(false);
   const [localVoteVersion, setLocalVoteVersion] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const lastTransitionAtRef = useRef(0);
   const stateRef = useRef({});
+  const dragRef = useRef({
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    active: false
+  });
 
   stateRef.current = {
     images,
@@ -179,26 +209,30 @@ export default function App() {
     const snapshot = stateRef.current;
 
     if (snapshot.images.length === 0) {
-      return;
+      return false;
     }
 
+    const currentIndex = getHistoryIndex(snapshot);
+
     if (direction < 0) {
-      if (snapshot.live && snapshot.images.length < 2) {
-        return;
+      if (currentIndex >= snapshot.images.length - 1) {
+        return false;
       }
 
-      const nextIndex = snapshot.live ? 1 : Math.min(snapshot.historyIndex + 1, snapshot.images.length - 1);
+      const nextIndex = currentIndex + 1;
+
       setLive(false);
       setHistoryIndex(nextIndex);
       transitionTo(snapshot.images[nextIndex], { force: true });
-      return;
+      return true;
     }
 
-    if (snapshot.live) {
-      return;
+    if (snapshot.live || currentIndex <= 0) {
+      return false;
     }
 
-    const nextIndex = Math.max(0, snapshot.historyIndex - 1);
+    const nextIndex = currentIndex - 1;
+
     setHistoryIndex(nextIndex);
 
     if (nextIndex === 0) {
@@ -206,6 +240,7 @@ export default function App() {
     }
 
     transitionTo(snapshot.images[nextIndex], { force: true });
+    return true;
   }
 
   async function sendFeedback(vote) {
@@ -263,6 +298,74 @@ export default function App() {
       localStorage.setItem('overlayEnabled', String(next));
       return next;
     });
+  }
+
+  function resetDrag() {
+    dragRef.current = {
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      active: false
+    };
+    setIsDragging(false);
+  }
+
+  function handleStagePointerDown(event) {
+    if (!event.isPrimary || isInteractiveElement(event.target)) {
+      return;
+    }
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      active: false
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function handleStagePointerMove(event) {
+    const drag = dragRef.current;
+
+    if (drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+
+    if (!drag.active) {
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > DRAG_VERTICAL_CANCEL_PX) {
+        resetDrag();
+        return;
+      }
+
+      if (Math.abs(deltaX) < DRAG_DEAD_ZONE_PX) {
+        return;
+      }
+
+      drag.active = true;
+      setIsDragging(true);
+    }
+
+    event.preventDefault();
+
+    if (Math.abs(deltaX) >= DRAG_STEP_PX) {
+      stepHistory(deltaX < 0 ? -1 : 1);
+      drag.startX = event.clientX;
+      drag.startY = event.clientY;
+    }
+  }
+
+  function handleStagePointerUp(event) {
+    const drag = dragRef.current;
+
+    if (drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    resetDrag();
   }
 
   useEffect(() => {
@@ -342,15 +445,23 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const selected = live ? displayedImage || images[0] : images[historyIndex];
+  const selectedIndex = getHistoryIndex({ displayedImage, images, live, historyIndex });
+  const selected = displayedImage || images[selectedIndex];
   const historyText = selected
-    ? `${live ? 'Live view' : 'Manual rewind'} • ${formatDistance(selected)} • Left/right arrows rewind. Press L for live.`
+    ? `${live ? 'Live view' : 'Manual rewind'} • ${formatDistance(selected)} • Swipe or use arrows to rewind. Press L for live.`
     : 'Waiting for image history';
   const localVote = getLocalVote(displayedImage?.id) || null;
 
   return (
     <main className="stage">
-      <div className={`stage__frame ${sourceOpen ? 'is-overlay-active' : ''}`}>
+      <div
+        className={`stage__frame ${sourceOpen ? 'is-overlay-active' : ''} ${isDragging ? 'is-dragging' : ''}`}
+        onPointerCancel={resetDrag}
+        onPointerDown={handleStagePointerDown}
+        onPointerLeave={handleStagePointerUp}
+        onPointerMove={handleStagePointerMove}
+        onPointerUp={handleStagePointerUp}
+      >
         <ClockImage image={displayedImage} />
         {!displayedImage && <p className="stage__message">next image generating...</p>}
         <About

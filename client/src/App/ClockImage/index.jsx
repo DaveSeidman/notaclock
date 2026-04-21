@@ -8,6 +8,10 @@ const EMPTY_SLOT = {
   alt: ''
 };
 
+function getAltText(image) {
+  return image ? `${image.displayDate} ${image.displayTime}` : '';
+}
+
 async function preloadImage(url) {
   if (!url) {
     return;
@@ -58,7 +62,7 @@ export default function ClockImage({ image }) {
           id: image.id,
           imageUrl: image.imageUrl,
           maskUrl: image.maskUrl || '',
-          alt: `${image.displayDate} ${image.displayTime}`
+          alt: getAltText(image)
         };
 
         return {
@@ -81,6 +85,7 @@ export default function ClockImage({ image }) {
         <img
           alt={slot.alt}
           className={`stage__image ${index === renderState.activeSlot ? 'is-visible' : ''}`}
+          draggable={false}
           key={`image-${index}`}
           src={slot.imageUrl || undefined}
         />
@@ -89,6 +94,7 @@ export default function ClockImage({ image }) {
         <img
           alt=""
           className={`stage__overlay ${index === renderState.activeSlot ? 'is-visible' : ''}`}
+          draggable={false}
           key={`overlay-${index}`}
           src={slot.maskUrl || undefined}
         />

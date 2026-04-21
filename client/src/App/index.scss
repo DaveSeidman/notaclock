@@ -58,6 +58,13 @@ body {
   max-height: 100dvh;
   overflow: hidden;
   background: var(--frame-bg);
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.stage__frame.is-dragging {
+  cursor: grabbing;
 }
 
 .stage__message {
