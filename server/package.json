@@ -1,0 +1,17 @@
+{
+  "name": "server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "build": "node src/validate.js"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.5.6",
+    "@napi-rs/canvas": "^0.1.68",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

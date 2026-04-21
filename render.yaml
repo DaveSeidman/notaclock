@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: notaclock-api
+    env: node
+    rootDir: .
+    buildCommand: npm install && npm run build:server
+    startCommand: npm --workspace server run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PORT
+        value: 3000
+      - key: CLOCK_TIMEZONE
+        value: America/New_York
+      - key: RETENTION_HOURS
+        value: 24
+      - key: GENERATION_INTERVAL_MINUTES
+        value: 1
+      - key: RENDER_MODE
+        value: fal
+      - key: CORS_ORIGIN
+        sync: false
+      - key: PUBLIC_API_URL
+        sync: false
+      - key: FAL_KEY
+        sync: false
+      - key: FAL_MODEL
+        value: fal-ai/illusion-diffusion
+      - key: FAL_GUIDANCE_SCALE
+        value: 5.5
+      - key: COMFYUI_URL
+        sync: false
+      - key: COMFYUI_WORKFLOW_PATH
+        value: /opt/render/project/src/server/workflows/illusion-diffusion.api.json
+      - key: MEDIA_ROOT
+        value: /var/data/notaclock

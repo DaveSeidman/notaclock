@@ -1,0 +1,21 @@
+{
+  "name": "notaclock",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "node ./scripts/dev.mjs",
+    "dev:client": "npm --workspace client run dev",
+    "dev:server": "npm --workspace server run dev",
+    "build": "npm run build:server && npm run build:client",
+    "build:client": "npm --workspace client run build",
+    "build:server": "npm --workspace server run build",
+    "start": "npm --workspace server run start"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}
