@@ -5,7 +5,7 @@ A light monorepo for a wall-art clock: the server generates a new hidden-time im
 ## Stack
 
 - `server/`: Express API, server-side time-mask generation, retention cleanup, image history, pluggable renderers
-- `client/`: Vite + Sass static viewer built for GitHub Pages
+- `client/`: Vite + React + Sass static viewer built for GitHub Pages
 - `render.yaml`: Render service starter config for the backend
 
 ## Render Modes
@@ -101,16 +101,51 @@ Generated files are served from:
 
 ## Deployment Notes
 
-### GitHub Pages
+This can stay as one GitHub repo. The Render backend and GitHub Pages frontend each have their own deploy config, and both understand monorepos well enough for this project.
 
-The frontend is set up with [`.github/workflows/deploy-client.yml`](/Users/daveseidman/Documents/personal/notaclock/.github/workflows/deploy-client.yml).
+### 1. Render API
 
-Before enabling it, set a repository variable named `VITE_API_BASE_URL` to your Render backend URL, for example:
+The backend starter config is in [render.yaml](/Users/daveseidman/Documents/personal/notaclock/render.yaml). In Render, create a new Blueprint from this repository and use the service it defines:
 
-- `https://notaclock-api.onrender.com`
+- service name: `notaclock-api`
+- build command: `npm ci && npm run build:server`
+- start command: `npm --workspace server run start`
+- health check: `/api/health`
+- persistent disk: `/var/data`, used by `MEDIA_ROOT=/var/data/notaclock`
 
-### Render
+Render will prompt for the secret values marked `sync: false`. Set these first:
 
-The backend starter config is in [render.yaml](/Users/daveseidman/Documents/personal/notaclock/render.yaml).
+- `FAL_KEY`: your Fal API key
+- `PUBLIC_API_URL`: the Render URL, for example `https://notaclock-api.onrender.com`
+- `CORS_ORIGIN`: the GitHub Pages origin, for example `https://<username>.github.io`
+- `ALLOW_MOCK_FALLBACK=false`: recommended in production so failed Fal renders do not silently become mock images
 
-Important note: recent image rewind depends on server-side file persistence. Render web services use ephemeral local storage unless you attach persistent disk storage or switch the media/index layer to object storage plus a database. The current setup assumes a writable disk mount via `MEDIA_ROOT`.
+If Render gives the service a different URL, use that actual URL for both `PUBLIC_API_URL` and the GitHub `VITE_API_BASE_URL` variable. If GitHub Pages serves this repo at `https://<username>.github.io/notaclock/`, keep `CORS_ORIGIN` as `https://<username>.github.io` because browser origins do not include path segments. If you do not know the Pages URL yet, you can temporarily set `CORS_ORIGIN=*` and tighten it after the frontend is live.
+
+The app stores final images, masks, the current image index, aggregate feedback, and per-click feedback events under `MEDIA_ROOT`. The main files to pull later for analysis are:
+
+- `index.json`: current rolling image records, prompts, filenames, and aggregate thumbs-up/thumbs-down counts
+- `feedback-events.jsonl`: one JSON event per viewer vote or vote change
+
+Important note: the one-week rewind depends on persistence. Render free web services use ephemeral storage and spin down, so the deploy config intentionally uses a paid `starter` service with a persistent disk.
+
+### 2. GitHub Pages Client
+
+The frontend workflow is [`.github/workflows/deploy-client.yml`](/Users/daveseidman/Documents/personal/notaclock/.github/workflows/deploy-client.yml). In GitHub:
+
+1. Go to Settings -> Pages and set Build and deployment -> Source to GitHub Actions.
+2. Go to Settings -> Secrets and variables -> Actions -> Variables.
+3. Add `VITE_API_BASE_URL` with the Render API URL, for example `https://notaclock-api.onrender.com`.
+4. Optionally add `VITE_PUBLIC_BASE=/` if this repo will deploy at a root/custom Pages domain. If you omit it, the workflow defaults to `/<repo-name>/`, which is right for `https://<username>.github.io/notaclock/`.
+5. Push to `main`, or run the `Deploy Client` workflow manually from the Actions tab.
+
+### Cost Notes
+
+Fal's pricing API reported `fal-ai/illusion-diffusion` at `$0.000575` per compute second on 2026-04-21. At one image per minute, the rough Fal cost is:
+
+```text
+daily Fal cost ~= average_compute_seconds_per_image * 1440 * 0.000575
+weekly Fal cost ~= daily Fal cost * 7
+```
+
+For quick calibration, 10 compute seconds per image is about `$8.28/day`; 20 compute seconds per image is about `$16.56/day`. Render compute and disk are separate from Fal usage.

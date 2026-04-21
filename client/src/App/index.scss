@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@400;500;700&display=swap');
+
+$font-body: 'Manrope', sans-serif;
+$bg: #070707;
+$frame-bg: #050505;
+$text: #f4efe8;
+$text-soft: rgba(244, 239, 232, 0.72);
+$chip: rgba(13, 13, 13, 0.46);
+$chip-border: rgba(255, 255, 255, 0.18);
+$panel: rgba(10, 10, 10, 0.68);
+$panel-border: rgba(255, 255, 255, 0.12);
+$shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+$edge-space: clamp(0.9rem, 2vw, 1.5rem);
+
+:root {
+  --bg: #{$bg};
+  --frame-bg: #{$frame-bg};
+  --text: #{$text};
+  --text-soft: #{$text-soft};
+  --chip: #{$chip};
+  --chip-border: #{$chip-border};
+  --panel: #{$panel};
+  --panel-border: #{$panel-border};
+  --shadow: #{$shadow};
+  --edge-space: #{$edge-space};
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: $font-body;
+  background: var(--bg);
+}
+
+.stage {
+  min-height: 100vh;
+}
+
+.stage__frame {
+  position: relative;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--frame-bg);
+}

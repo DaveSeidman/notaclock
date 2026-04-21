@@ -14,68 +14,9 @@
       rel="stylesheet"
     />
     <title>Not A Clock</title>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </head>
   <body>
-    <main class="stage">
-      <div class="stage__frame" id="stage-frame">
-        <img class="stage__image stage__image--a is-visible" alt="" />
-        <img class="stage__image stage__image--b" alt="" />
-        <img class="stage__overlay stage__overlay--a is-visible" alt="" />
-        <img class="stage__overlay stage__overlay--b" alt="" />
-        <div class="stage__wash"></div>
-
-        <div class="stage__brand">
-          <button class="stage__label" id="info-toggle" type="button" aria-expanded="false" aria-controls="info-card">Not A Clock</button>
-        </div>
-
-        <button
-          class="overlay-toggle"
-          id="overlay-toggle"
-          type="button"
-          aria-pressed="false"
-          aria-label="Show source control image"
-          title="Show source control image"
-        >
-          <svg class="eye-icon eye-icon--open" viewBox="0 0 48 48" aria-hidden="true">
-            <path d="M5 24s7-11 19-11 19 11 19 11-7 11-19 11S5 24 5 24Z" />
-            <circle cx="24" cy="24" r="5.5" />
-          </svg>
-          <svg class="eye-icon eye-icon--closed" viewBox="0 0 48 48" aria-hidden="true">
-            <path d="M7 31c4.7-5.2 10.4-7.8 17-7.8S36.3 25.8 41 31" />
-            <path d="M14 35l-3 4M24 36v5M34 35l3 4" />
-          </svg>
-        </button>
-
-        <aside class="source-card" id="source-card" hidden>
-          <p class="source-card__label">Current prompt</p>
-          <p class="source-card__prompt" id="source-prompt"></p>
-          <div class="feedback" aria-label="Rate this image">
-            <button class="feedback__button" id="feedback-up" type="button" data-vote="up" aria-label="Thumbs up">👍</button>
-            <button class="feedback__button" id="feedback-down" type="button" data-vote="down" aria-label="Thumbs down">👎</button>
-          </div>
-          <p class="source-card__meta" id="feedback-summary">No feedback yet.</p>
-        </aside>
-
-        <aside class="info-card" id="info-card" hidden>
-          <div class="info-card__header">
-            <button class="info-card__close" id="info-close" type="button" aria-label="Close details">Close</button>
-          </div>
-
-          <p class="info-card__body">
-            A quiet clock disguised as a picture. Somewhere inside the image, the hour and minute are folded
-            into the composition. Squint a little; the numbers are there, but they prefer not to announce themselves.
-          </p>
-
-          <label class="field" for="refresh-interval">
-            <span>Viewer cadence</span>
-            <select id="refresh-interval"></select>
-          </label>
-
-          <p class="meta" id="image-time">Waiting for the first render...</p>
-          <p class="meta" id="history-copy">Left/right arrows rewind through recent frames. Press L to jump back live.</p>
-        </aside>
-      </div>
-    </main>
+    <div id="root"></div>
   </body>
 </html>

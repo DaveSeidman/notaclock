@@ -1,11 +1,25 @@
 services:
   - type: web
     name: notaclock-api
-    env: node
+    runtime: node
+    plan: starter
     rootDir: .
-    buildCommand: npm install && npm run build:server
+    buildCommand: npm ci && npm run build:server
     startCommand: npm --workspace server run start
     healthCheckPath: /api/health
+    disk:
+      name: notaclock-media
+      mountPath: /var/data
+      sizeGB: 20
+    buildFilter:
+      paths:
+        - package.json
+        - package-lock.json
+        - render.yaml
+        - server/**
+      ignoredPaths:
+        - client/**
+        - .github/**
     envVars:
       - key: NODE_VERSION
         value: 20
@@ -14,11 +28,13 @@ services:
       - key: CLOCK_TIMEZONE
         value: America/New_York
       - key: RETENTION_HOURS
-        value: 24
+        value: 168
       - key: GENERATION_INTERVAL_MINUTES
         value: 1
       - key: RENDER_MODE
         value: fal
+      - key: ALLOW_MOCK_FALLBACK
+        value: false
       - key: CORS_ORIGIN
         sync: false
       - key: PUBLIC_API_URL
@@ -28,10 +44,16 @@ services:
       - key: FAL_MODEL
         value: fal-ai/illusion-diffusion
       - key: FAL_GUIDANCE_SCALE
-        value: 5.5
-      - key: COMFYUI_URL
-        sync: false
-      - key: COMFYUI_WORKFLOW_PATH
-        value: /opt/render/project/src/server/workflows/illusion-diffusion.api.json
+        value: 0.75
+      - key: FAL_CONTROLNET_CONDITIONING_SCALE
+        value: 1
+      - key: FAL_CONTROL_GUIDANCE_START
+        value: 0
+      - key: FAL_CONTROL_GUIDANCE_END
+        value: 1
+      - key: FAL_NUM_INFERENCE_STEPS
+        value: 40
+      - key: FAL_SCHEDULER
+        value: Euler
       - key: MEDIA_ROOT
         value: /var/data/notaclock
