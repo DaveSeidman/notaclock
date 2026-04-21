@@ -1,6 +1,6 @@
 # Not A Clock
 
-A light monorepo for a wall-art clock: the server generates a new hidden-time image every minute, stores a rolling history, and the frontend fades between images while letting viewers rewind recent frames.
+A light monorepo for a wall-art clock: the server generates hidden-time images on a randomized five-minute cadence, stores a rolling history, and the frontend fades between images while letting viewers rewind recent frames.
 
 ## Stack
 
@@ -76,7 +76,7 @@ The API runs on `http://localhost:3000` by default.
 
 ## How It Works
 
-Every scheduled run:
+Every scheduled run, currently once per five-minute bucket with a random 0-4 minute offset:
 
 1. The server formats the current time in your configured timezone.
 2. It generates a fresh 1024x1024 black-and-white mask with randomized type size, spacing, placement, and font choices.
@@ -84,7 +84,7 @@ Every scheduled run:
 4. It renders the final artwork using Fal, ComfyUI, or the built-in mock renderer.
 5. It stores the output plus metadata and deletes images older than `RETENTION_HOURS`.
 
-The frontend polls the latest image, crossfades between frames, keeps the on-screen UI nearly invisible, reveals the control layer on demand, and still lets the viewer choose a display cadence from 1 to 30 minutes while rewinding recent history from the keyboard.
+The frontend polls the latest image, crossfades between frames, keeps the on-screen UI nearly invisible, reveals the control layer on demand, and still lets the viewer choose a display cadence from 5 minutes to 1 hour while rewinding recent history from the keyboard.
 
 ## API
 
@@ -145,8 +145,8 @@ The frontend workflow is [`.github/workflows/deploy-client.yml`](/Users/daveseid
 Fal's pricing API reported `fal-ai/illusion-diffusion` at `$0.000575` per compute second on 2026-04-21. At one image per minute, the rough Fal cost is:
 
 ```text
-daily Fal cost ~= average_compute_seconds_per_image * 1440 * 0.000575
+daily Fal cost ~= average_compute_seconds_per_image * images_per_day * 0.000575
 weekly Fal cost ~= daily Fal cost * 7
 ```
 
-For quick calibration, 10 compute seconds per image is about `$8.28/day`; 20 compute seconds per image is about `$16.56/day`. Render free web service hosting avoids Render compute/disk costs for the demo, but Fal generation still costs money whenever images are generated.
+At the default five-minute server cadence, `images_per_day` is about `288`. For quick calibration, 10 compute seconds per image is about `$1.66/day`; 20 compute seconds per image is about `$3.31/day`. Render free web service hosting avoids Render compute/disk costs for the demo, but Fal generation still costs money whenever images are generated.

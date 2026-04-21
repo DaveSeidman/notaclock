@@ -21,10 +21,26 @@ export class GenerationScheduler {
     }
   }
 
-  scheduleNextRun() {
+  getNextRunAt(now = Date.now()) {
     const intervalMs = this.config.generationIntervalMinutes * 60 * 1000;
+    const jitterChoices = Math.max(0, this.config.generationJitterMinutes) + 1;
+    const currentBucketStart = Math.floor(now / intervalMs) * intervalMs;
+    let bucketStart = currentBucketStart + intervalMs;
+    let jitterMinutes = Math.floor(Math.random() * jitterChoices);
+    let nextTick = bucketStart + jitterMinutes * 60 * 1000 + 250;
+
+    if (nextTick <= now + 1000) {
+      bucketStart += intervalMs;
+      jitterMinutes = Math.floor(Math.random() * jitterChoices);
+      nextTick = bucketStart + jitterMinutes * 60 * 1000 + 250;
+    }
+
+    return nextTick;
+  }
+
+  scheduleNextRun() {
     const now = Date.now();
-    const nextTick = Math.floor(now / intervalMs) * intervalMs + intervalMs + 250;
+    const nextTick = this.getNextRunAt(now);
     const delay = Math.max(1000, nextTick - now);
 
     this.nextRunAt = new Date(nextTick).toISOString();

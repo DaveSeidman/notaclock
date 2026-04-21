@@ -3,12 +3,16 @@ import './index.scss';
 
 function buildIntervalOptions(config) {
   const interval = config?.refreshInterval || {
-    min: 1,
-    max: 30,
-    default: 1
+    min: 5,
+    max: 60,
+    step: 5,
+    default: 5
   };
 
-  return Array.from({ length: interval.max - interval.min + 1 }, (_, index) => interval.min + index);
+  const step = interval.step || 5;
+  const optionCount = Math.floor((interval.max - interval.min) / step) + 1;
+
+  return Array.from({ length: optionCount }, (_, index) => interval.min + index * step);
 }
 
 export default function About({

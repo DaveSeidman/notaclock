@@ -44,6 +44,7 @@ export function createApiRouter({ config, store, generator, scheduler }) {
       refreshInterval: {
         min: config.minRefreshIntervalMinutes,
         max: config.maxRefreshIntervalMinutes,
+        step: config.refreshIntervalStepMinutes,
         default: config.defaultRefreshIntervalMinutes
       }
     });

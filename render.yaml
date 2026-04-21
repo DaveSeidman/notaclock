@@ -26,7 +26,17 @@ services:
       - key: RETENTION_HOURS
         value: 24
       - key: GENERATION_INTERVAL_MINUTES
-        value: 1
+        value: 5
+      - key: GENERATION_JITTER_MINUTES
+        value: 4
+      - key: MIN_REFRESH_INTERVAL_MINUTES
+        value: 5
+      - key: MAX_REFRESH_INTERVAL_MINUTES
+        value: 60
+      - key: DEFAULT_REFRESH_INTERVAL_MINUTES
+        value: 5
+      - key: REFRESH_INTERVAL_STEP_MINUTES
+        value: 5
       - key: RENDER_MODE
         value: fal
       - key: ALLOW_MOCK_FALLBACK

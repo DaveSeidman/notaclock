@@ -52,6 +52,17 @@ function formatDistance(record) {
   return deltaMinutes === 0 ? 'Now' : `${deltaMinutes} minute${deltaMinutes === 1 ? '' : 's'} back`;
 }
 
+function normalizeRefreshInterval(nextMinutes, interval = { min: 5, max: 60, step: 5, default: 5 }) {
+  const min = interval.min ?? 5;
+  const max = interval.max ?? 60;
+  const step = interval.step || 5;
+  const fallback = interval.default ?? min;
+  const raw = Number.isFinite(nextMinutes) ? nextMinutes : fallback;
+  const clamped = Math.min(Math.max(raw, min), max);
+
+  return Math.min(max, min + Math.round((clamped - min) / step) * step);
+}
+
 async function fetchJson(path) {
   const response = await fetch(`${API_BASE}${path}`);
 
@@ -69,7 +80,7 @@ export default function App() {
   const [live, setLive] = useState(true);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [refreshIntervalMinutes, setRefreshIntervalMinutes] = useState(() =>
-    Number.parseInt(localStorage.getItem('refreshIntervalMinutes') || '1', 10)
+    Number.parseInt(localStorage.getItem('refreshIntervalMinutes') || '5', 10)
   );
   const [sourceOpen, setSourceOpen] = useState(() => localStorage.getItem('overlayEnabled') === 'true');
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -241,8 +252,7 @@ export default function App() {
   }
 
   function handleRefreshIntervalChange(nextMinutes) {
-    const interval = config?.refreshInterval || { min: 1, max: 30 };
-    const clamped = Math.min(Math.max(nextMinutes, interval.min), interval.max);
+    const clamped = normalizeRefreshInterval(nextMinutes, config?.refreshInterval);
     setRefreshIntervalMinutes(clamped);
     localStorage.setItem('refreshIntervalMinutes', String(clamped));
   }
@@ -267,7 +277,7 @@ export default function App() {
         }
 
         const interval = configPayload.refreshInterval;
-        const clamped = Math.min(Math.max(refreshIntervalMinutes || interval.default, interval.min), interval.max);
+        const clamped = normalizeRefreshInterval(refreshIntervalMinutes, interval);
         setConfig(configPayload);
         setRefreshIntervalMinutes(clamped);
         localStorage.setItem('refreshIntervalMinutes', String(clamped));

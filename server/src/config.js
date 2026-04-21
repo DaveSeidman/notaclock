@@ -57,9 +57,15 @@ function resolveFromServer(inputPath, fallback) {
 }
 
 export function loadConfig() {
-  const minRefreshIntervalMinutes = readInt('MIN_REFRESH_INTERVAL_MINUTES', 1, { min: 1, max: 30 });
-  const maxRefreshIntervalMinutes = readInt('MAX_REFRESH_INTERVAL_MINUTES', 30, { min: minRefreshIntervalMinutes, max: 30 });
-  const defaultRefreshIntervalMinutes = readInt('DEFAULT_REFRESH_INTERVAL_MINUTES', 1, {
+  const generationIntervalMinutes = readInt('GENERATION_INTERVAL_MINUTES', 5, { min: 1, max: 60 });
+  const generationJitterMinutes = readInt('GENERATION_JITTER_MINUTES', Math.max(0, generationIntervalMinutes - 1), {
+    min: 0,
+    max: Math.max(0, generationIntervalMinutes - 1)
+  });
+  const minRefreshIntervalMinutes = readInt('MIN_REFRESH_INTERVAL_MINUTES', 5, { min: 5, max: 60 });
+  const maxRefreshIntervalMinutes = readInt('MAX_REFRESH_INTERVAL_MINUTES', 60, { min: minRefreshIntervalMinutes, max: 60 });
+  const refreshIntervalStepMinutes = readInt('REFRESH_INTERVAL_STEP_MINUTES', 5, { min: 1, max: maxRefreshIntervalMinutes });
+  const defaultRefreshIntervalMinutes = readInt('DEFAULT_REFRESH_INTERVAL_MINUTES', 5, {
     min: minRefreshIntervalMinutes,
     max: maxRefreshIntervalMinutes
   });
@@ -70,10 +76,12 @@ export function loadConfig() {
     publicApiUrl: process.env.PUBLIC_API_URL?.trim() || '',
     corsOrigin: process.env.CORS_ORIGIN?.trim() || '*',
     imageSize: readInt('IMAGE_SIZE', 1024, { min: 512, max: 2048 }),
-    generationIntervalMinutes: readInt('GENERATION_INTERVAL_MINUTES', 1, { min: 1, max: 30 }),
+    generationIntervalMinutes,
+    generationJitterMinutes,
     retentionHours: readInt('RETENTION_HOURS', 24, { min: 1, max: 168 }),
     minRefreshIntervalMinutes,
     maxRefreshIntervalMinutes,
+    refreshIntervalStepMinutes,
     defaultRefreshIntervalMinutes,
     defaultHistoryLimit: readInt('DEFAULT_HISTORY_LIMIT', 1440, { min: 1, max: 5000 }),
     maxHistoryLimit: readInt('MAX_HISTORY_LIMIT', 1440, { min: 1, max: 5000 }),
