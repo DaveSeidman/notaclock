@@ -3,6 +3,7 @@ import { createSeedFromString, mulberry32, pick } from './utils.js';
 const COLLECTIONS = [
   {
     key: 'landscape',
+    weight: 16,
     subjects: [
       'sunlit coastal painting',
       'misty mountain overlook',
@@ -21,6 +22,7 @@ const COLLECTIONS = [
   },
   {
     key: 'interior',
+    weight: 12,
     subjects: [
       'warm reading nook near a tall window',
       'sunlit dining room with sculptural chairs',
@@ -38,6 +40,7 @@ const COLLECTIONS = [
   },
   {
     key: 'still-life',
+    weight: 12,
     subjects: [
       'still life with ceramic vessels and linen',
       'citrus and glass arranged on a marble ledge',
@@ -55,6 +58,7 @@ const COLLECTIONS = [
   },
   {
     key: 'portrait',
+    weight: 14,
     subjects: [
       'editorial portrait of a woman in a patterned coat',
       'older man reading beside a rain-streaked window',
@@ -73,6 +77,7 @@ const COLLECTIONS = [
   },
   {
     key: 'street',
+    weight: 10,
     subjects: [
       'crowded crosswalk after rainfall',
       'couple walking past a neon storefront',
@@ -90,23 +95,30 @@ const COLLECTIONS = [
   },
   {
     key: 'pop-art',
+    weight: 11,
     subjects: [
       'graphic portrait with oversized sunglasses',
       'bananas, flowers, and sneakers arranged as an icon study',
       'roller skater in bold side profile',
       'cat lounging beside a checkerboard vase',
-      'group of friends cropped into bold silhouette blocks'
+      'group of friends cropped into bold silhouette blocks',
+      'textless comic panel of a surprised swimmer',
+      'giant cherries and chrome sunglasses on striped fabric',
+      'bold hand holding a melting ice cream cone'
     ],
     styles: [
       'bold pop-art silkscreen aesthetic',
       'halftone comic-inspired painting',
       'cut-paper collage with saturated color fields',
-      'graphic printmaking style'
+      'graphic printmaking style',
+      'textless vintage advertising art',
+      'risograph poster style with no typography'
     ],
     moods: ['playful and punchy', 'bold and collectible', 'high-contrast and iconic']
   },
   {
     key: 'abstract',
+    weight: 11,
     subjects: [
       'abstract landscape with layered brushwork',
       'geometric abstraction with curved color blocks',
@@ -121,6 +133,117 @@ const COLLECTIONS = [
       'modernist color-field study'
     ],
     moods: ['meditative and bold', 'graphic and refined', 'subtle visual tension']
+  },
+  {
+    key: 'surreal',
+    weight: 8,
+    subjects: [
+      'impossible room with a small indoor ocean',
+      'floating stone staircase above a quiet garden',
+      'oversized moon resting behind a dinner table',
+      'pear-shaped doorway opening onto a painted sky',
+      'library with clouds drifting between the shelves',
+      'swimmer suspended above a tiled courtyard'
+    ],
+    styles: [
+      'contemporary surrealist painting',
+      'dreamlike editorial photograph',
+      'magical realism oil painting',
+      'soft cinematic matte painting'
+    ],
+    moods: ['strange but elegant', 'quietly uncanny', 'poetic and collectible']
+  },
+  {
+    key: 'sci-fi',
+    weight: 8,
+    subjects: [
+      'retrofuturist apartment overlooking an orbital garden',
+      'desert research outpost under a glass dome',
+      'astronaut greenhouse filled with sculptural plants',
+      'quiet spaceport lounge with curved furniture',
+      'alien coastline with tiny human figures',
+      'sleek observation deck above a ringed planet'
+    ],
+    styles: [
+      '1970s sci-fi paperback cover art without text',
+      'retrofuturist airbrush illustration',
+      'cinematic sci-fi concept painting',
+      'gallery-grade speculative landscape'
+    ],
+    moods: ['wonder-filled and atmospheric', 'sleek but warm', 'cosmic and contemplative']
+  },
+  {
+    key: 'botanical',
+    weight: 9,
+    subjects: [
+      'oversized botanical study of tropical leaves',
+      'glasshouse plants casting shadows on tiled floor',
+      'cactus garden with ceramic sculptures',
+      'orchids and cut stems arranged on linen',
+      'fern collection in a quiet conservatory'
+    ],
+    styles: [
+      'botanical fine art print',
+      'painted natural history plate without labels',
+      'lush editorial garden photograph',
+      'delicate watercolor study'
+    ],
+    moods: ['fresh and composed', 'organic and refined', 'quietly lush']
+  },
+  {
+    key: 'architecture',
+    weight: 8,
+    subjects: [
+      'brutalist courtyard with long afternoon shadows',
+      'modernist beach house above dark water',
+      'art deco cinema lobby with velvet seating',
+      'spiral staircase in a sunlit museum',
+      'sunken conversation pit with sculptural lamps',
+      'quiet concrete chapel with colored glass'
+    ],
+    styles: [
+      'architectural digest editorial photograph',
+      'modernist architectural painting',
+      'cinematic production design still',
+      'clean graphic architectural illustration'
+    ],
+    moods: ['designed and atmospheric', 'elegant with strong geometry', 'quietly monumental']
+  },
+  {
+    key: 'poster',
+    weight: 7,
+    subjects: [
+      'textless vintage travel poster of a mountain lake',
+      'minimal exhibition poster made from color blocks only',
+      'textless jazz club poster with musicians in silhouette',
+      'beach umbrella pattern in a bold poster composition',
+      'textless film poster for an imaginary summer mystery'
+    ],
+    styles: [
+      'screenprinted poster art without typography',
+      'mid-century graphic illustration',
+      'risograph art print',
+      'bold Bauhaus-inspired composition'
+    ],
+    moods: ['graphic and charming', 'collectible and crisp', 'stylized with playful restraint']
+  },
+  {
+    key: 'textile',
+    weight: 6,
+    subjects: [
+      'woven tapestry pattern with birds and flowers',
+      'quilt-like landscape made from irregular color fields',
+      'ceramic tile mural of swimmers and plants',
+      'embroidered folk-art garden scene',
+      'patterned rug study with animals hidden in the border'
+    ],
+    styles: [
+      'contemporary textile artwork',
+      'folk-art inspired painting',
+      'handmade ceramic mural aesthetic',
+      'soft woven wall hanging texture'
+    ],
+    moods: ['handmade and warm', 'playful but refined', 'tactile and home-like']
   }
 ];
 
@@ -160,36 +283,19 @@ const COMPOSITIONS = [
   'negative space that feels intentional'
 ];
 
-const DAYPART_SUBJECTS = {
-  dawn: ['fog drifting through trees', 'sleepy waterfront rooftops', 'pale blush sky over hills'],
-  day: ['bright citrus still life', 'open sea under crisp daylight', 'sun-washed Mediterranean alley'],
-  dusk: ['lamplight through curtains', 'violet sky above rooftops', 'embers of sunset over water'],
-  night: ['moonlit garden painting', 'quiet street after rainfall', 'deep indigo horizon with soft lights']
-};
+function pickWeighted(items, rng) {
+  const totalWeight = items.reduce((sum, item) => sum + (item.weight || 1), 0);
+  let target = rng() * totalWeight;
 
-function getDaypart(date, timeZone) {
-  const hour = Number.parseInt(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hour: '2-digit',
-      hour12: false
-    }).format(date),
-    10
-  );
+  for (const item of items) {
+    target -= item.weight || 1;
 
-  if (hour >= 5 && hour < 9) {
-    return 'dawn';
+    if (target <= 0) {
+      return item;
+    }
   }
 
-  if (hour >= 9 && hour < 17) {
-    return 'day';
-  }
-
-  if (hour >= 17 && hour < 21) {
-    return 'dusk';
-  }
-
-  return 'night';
+  return items[items.length - 1];
 }
 
 export class PromptGenerator {
@@ -197,7 +303,7 @@ export class PromptGenerator {
     this.config = config;
   }
 
-  generate(date, minuteKey) {
+  generate(_date, minuteKey) {
     const seed = createSeedFromString(`${minuteKey}:${this.config.clockTimezone}`);
     const rng = mulberry32(seed);
 
@@ -208,24 +314,8 @@ export class PromptGenerator {
       };
     }
 
-    const daypart = getDaypart(date, this.config.clockTimezone);
-    const collection = pick(
-      [
-        COLLECTIONS[0],
-        COLLECTIONS[0],
-        COLLECTIONS[1],
-        COLLECTIONS[2],
-        COLLECTIONS[3],
-        COLLECTIONS[3],
-        COLLECTIONS[4],
-        COLLECTIONS[5],
-        COLLECTIONS[6]
-      ],
-      rng
-    );
-
-    const subject =
-      collection.key === 'landscape' && rng() > 0.72 ? pick(DAYPART_SUBJECTS[daypart], rng) : pick(collection.subjects, rng);
+    const collection = pickWeighted(COLLECTIONS, rng);
+    const subject = pick(collection.subjects, rng);
     const style = pick(collection.styles, rng);
     const lighting = pick(LIGHTING, rng);
     const mood = pick(collection.moods, rng);
