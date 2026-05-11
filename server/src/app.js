@@ -33,10 +33,14 @@ function createCorsOptions(config) {
   };
 }
 
-export async function createApp() {
+export async function createApp(options = {}) {
+  const { initStore = true } = options;
   const config = loadConfig();
   const store = new ImageStore(config);
-  await store.init();
+
+  if (initStore) {
+    await store.init();
+  }
 
   const promptGenerator = new PromptGenerator(config);
   const falRenderer = new FalRenderer(config);
