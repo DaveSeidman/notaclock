@@ -34,11 +34,21 @@ $edge-space: clamp(0.9rem, 2vw, 1.5rem);
 html,
 body {
   width: 100%;
-  min-height: 100%;
+  height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
+  position: fixed;
+  inset: 0;
   margin: 0;
   color: var(--text);
   font-family: $font-body;
@@ -46,17 +56,23 @@ body {
 }
 
 .stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .stage__frame {
   position: relative;
+  width: 100%;
   height: 100vh;
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
   background: var(--frame-bg);
   cursor: grab;
   touch-action: pan-y;
