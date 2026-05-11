@@ -1,5 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './index.scss';
+
+const DRAG_SUPPRESS_MS = 140;
+
+function formatDistance(record) {
+  if (!record?.representedAt) {
+    return 'Waiting for image history';
+  }
+
+  const deltaMinutes = Math.max(0, Math.round((Date.now() - Date.parse(record.representedAt)) / 60000));
+  return deltaMinutes === 0 ? 'Now' : `${deltaMinutes} minute${deltaMinutes === 1 ? '' : 's'} back`;
+}
 
 function buildIntervalOptions(config) {
   const interval = config?.refreshInterval || {
@@ -18,15 +29,30 @@ function buildIntervalOptions(config) {
 export default function About({
   config,
   image,
+  images,
   isOpen,
+  live,
+  localVote,
   onClose,
+  onFeedback,
   onToggle,
+  onSelectImage,
   refreshIntervalMinutes,
-  historyText,
+  selectedIndex,
   onRefreshIntervalChange
 }) {
   const cardRef = useRef(null);
+  const railRef = useRef(null);
+  const thumbnailRefs = useRef(new Map());
   const triggerRef = useRef(null);
+  const [railDragging, setRailDragging] = useState(false);
+  const dragRef = useRef({
+    pointerId: null,
+    startX: 0,
+    scrollLeft: 0,
+    dragged: false
+  });
+  const suppressClickUntilRef = useRef(0);
 
   useEffect(() => {
     if (!isOpen) {
@@ -45,7 +71,91 @@ export default function About({
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    const thumbnail = thumbnailRefs.current.get(image?.id);
+
+    if (!thumbnail) {
+      return;
+    }
+
+    thumbnail.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    });
+  }, [image?.id]);
+
   const intervalOptions = buildIntervalOptions(config);
+  const selectedImage = image || images?.[selectedIndex] || null;
+  const feedback = selectedImage?.feedback || { up: 0, down: 0 };
+  const displayImages = (images || []).map((entry, index) => ({ entry, index })).reverse();
+
+  function handleRailPointerDown(event) {
+    if (!event.isPrimary || !railRef.current) {
+      return;
+    }
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      scrollLeft: railRef.current.scrollLeft,
+      dragged: false
+    };
+
+    railRef.current.setPointerCapture?.(event.pointerId);
+    setRailDragging(true);
+  }
+
+  function handleRailPointerMove(event) {
+    const drag = dragRef.current;
+
+    if (drag.pointerId !== event.pointerId || !railRef.current) {
+      return;
+    }
+
+    const deltaX = event.clientX - drag.startX;
+
+    if (!drag.dragged && Math.abs(deltaX) > 6) {
+      drag.dragged = true;
+    }
+
+    if (!drag.dragged) {
+      return;
+    }
+
+    event.preventDefault();
+    railRef.current.scrollLeft = drag.scrollLeft - deltaX;
+  }
+
+  function handleRailPointerUp(event) {
+    const drag = dragRef.current;
+
+    if (drag.pointerId !== event.pointerId || !railRef.current) {
+      return;
+    }
+
+    railRef.current.releasePointerCapture?.(event.pointerId);
+
+    if (drag.dragged) {
+      suppressClickUntilRef.current = Date.now() + DRAG_SUPPRESS_MS;
+    }
+
+    dragRef.current = {
+      pointerId: null,
+      startX: 0,
+      scrollLeft: 0,
+      dragged: false
+    };
+    setRailDragging(false);
+  }
+
+  function handleThumbnailSelect(index) {
+    if (Date.now() < suppressClickUntilRef.current) {
+      return;
+    }
+
+    onSelectImage(index);
+  }
 
   return (
     <>
@@ -96,7 +206,86 @@ export default function About({
         <p className="meta">
           {image ? `${image.displayDate} • ${image.displayTime}` : 'Waiting for the first render...'}
         </p>
-        <p className="meta">{historyText}</p>
+
+        <div className="history-gallery">
+          <div className="history-gallery__header">
+            <p className="history-gallery__status">
+              {selectedImage
+                ? `${live ? 'Live view' : 'Browsing history'} • ${formatDistance(selectedImage)}`
+                : 'Waiting for image history'}
+            </p>
+          </div>
+
+          <div
+            className={`history-gallery__rail ${railDragging ? 'is-dragging' : ''}`}
+            onPointerCancel={handleRailPointerUp}
+            onPointerDown={handleRailPointerDown}
+            onPointerMove={handleRailPointerMove}
+            onPointerUp={handleRailPointerUp}
+            ref={railRef}
+          >
+            {displayImages.map(({ entry, index }) => {
+              const isSelected = entry.id === selectedImage?.id;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`history-thumb ${isSelected ? 'is-selected' : ''}`}
+                  key={entry.id}
+                  onClick={() => handleThumbnailSelect(index)}
+                  ref={(node) => {
+                    if (node) {
+                      thumbnailRefs.current.set(entry.id, node);
+                    } else {
+                      thumbnailRefs.current.delete(entry.id);
+                    }
+                  }}
+                  type="button"
+                >
+                  <img
+                    alt={`${entry.displayDate} ${entry.displayTime}`}
+                    className="history-thumb__image"
+                    draggable={false}
+                    src={entry.imageUrl}
+                  />
+                  <span className="history-thumb__time">{entry.displayTime}</span>
+                  {index === 0 && <span className="history-thumb__badge">Live</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedImage && (
+            <div className="history-gallery__footer">
+              <p className="history-gallery__meta">
+                {selectedImage.displayDate} • {selectedImage.displayTime}
+              </p>
+              <div className="history-feedback" aria-label="Rate this image">
+                <button
+                  aria-label="Thumbs up"
+                  aria-pressed={localVote === 'up'}
+                  className={`history-feedback__button ${localVote === 'up' ? 'is-active' : ''}`}
+                  onClick={() => onFeedback('up')}
+                  type="button"
+                >
+                  👍
+                </button>
+                <button
+                  aria-label="Thumbs down"
+                  aria-pressed={localVote === 'down'}
+                  className={`history-feedback__button ${localVote === 'down' ? 'is-active' : ''}`}
+                  onClick={() => onFeedback('down')}
+                  type="button"
+                >
+                  👎
+                </button>
+              </div>
+              <p className="history-gallery__meta">
+                {feedback.up || 0} up • {feedback.down || 0} down
+              </p>
+            </div>
+          )}
+        </div>
       </aside>
     </>
   );

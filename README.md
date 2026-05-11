@@ -70,7 +70,7 @@ Local demo mode. Useful for UI development or smoke tests without an external mo
    npm run dev
    ```
 
-5. Open the client at `http://localhost:5173`.
+5. Open the client at `http://localhost:8080`.
 
 The API runs on `http://localhost:3000` by default.
 

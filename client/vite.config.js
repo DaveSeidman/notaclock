@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [react()],
   base: process.env.VITE_PUBLIC_BASE || '/',
   server: {
-    host: true
+    host: true,
+    port: 8080
   },
   css: {
     preprocessorOptions: {

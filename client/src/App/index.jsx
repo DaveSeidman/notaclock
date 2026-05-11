@@ -6,6 +6,7 @@ import './index.scss';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const HISTORY_LIMIT = Number.parseInt(import.meta.env.VITE_HISTORY_LIMIT || '1440', 10);
+const HISTORY_PREVIEW_LIMIT = 18;
 const VISITOR_ID_KEY = 'notaclockVisitorId';
 const DRAG_DEAD_ZONE_PX = 8;
 const DRAG_STEP_PX = 56;
@@ -44,15 +45,6 @@ function getVisitorId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   localStorage.setItem(VISITOR_ID_KEY, nextId);
   return nextId;
-}
-
-function formatDistance(record) {
-  if (!record?.representedAt) {
-    return 'Waiting for image history';
-  }
-
-  const deltaMinutes = Math.max(0, Math.round((Date.now() - Date.parse(record.representedAt)) / 60000));
-  return deltaMinutes === 0 ? 'Now' : `${deltaMinutes} minute${deltaMinutes === 1 ? '' : 's'} back`;
 }
 
 function normalizeRefreshInterval(nextMinutes, interval = { min: 5, max: 60, step: 5, default: 5 }) {
@@ -241,6 +233,19 @@ export default function App() {
 
     transitionTo(snapshot.images[nextIndex], { force: true });
     return true;
+  }
+
+  function selectImageAtIndex(index) {
+    const snapshot = stateRef.current;
+    const nextImage = snapshot.images[index];
+
+    if (!nextImage) {
+      return;
+    }
+
+    setHistoryIndex(index);
+    setLive(index === 0);
+    transitionTo(nextImage, { force: true });
   }
 
   async function sendFeedback(vote) {
@@ -446,11 +451,8 @@ export default function App() {
   }, []);
 
   const selectedIndex = getHistoryIndex({ displayedImage, images, live, historyIndex });
-  const selected = displayedImage || images[selectedIndex];
-  const historyText = selected
-    ? `${live ? 'Live view' : 'Manual rewind'} • ${formatDistance(selected)} • Swipe or use arrows to rewind. Press L for live.`
-    : 'Waiting for image history';
   const localVote = getLocalVote(displayedImage?.id) || null;
+  const previewImages = images.slice(0, HISTORY_PREVIEW_LIMIT);
 
   return (
     <main className="stage">
@@ -466,13 +468,18 @@ export default function App() {
         {!displayedImage && <p className="stage__message">next image generating...</p>}
         <About
           config={config}
-          historyText={historyText}
           image={displayedImage}
+          images={previewImages}
           isOpen={aboutOpen}
+          live={live}
+          localVote={localVote}
           onClose={() => setAboutOpen(false)}
+          onFeedback={sendFeedback}
           onRefreshIntervalChange={handleRefreshIntervalChange}
+          onSelectImage={selectImageAtIndex}
           onToggle={() => setAboutOpen((current) => !current)}
           refreshIntervalMinutes={refreshIntervalMinutes}
+          selectedIndex={selectedIndex}
         />
         <Info
           image={displayedImage}
