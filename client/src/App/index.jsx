@@ -59,10 +59,6 @@ function normalizeRefreshInterval(nextMinutes, interval = { min: 5, max: 60, ste
 }
 
 function getHistoryIndex(snapshot) {
-  if (snapshot.live) {
-    return 0;
-  }
-
   const imageIndex = snapshot.displayedImage?.id
     ? snapshot.images.findIndex((image) => image.id === snapshot.displayedImage.id)
     : -1;
@@ -147,6 +143,7 @@ export default function App() {
     }
 
     if (!snapshot.displayedImage) {
+      setHistoryIndex(0);
       transitionTo(latest, { force: true });
       return;
     }
@@ -154,6 +151,7 @@ export default function App() {
     const enoughTimePassed = Date.now() - lastTransitionAtRef.current >= snapshot.refreshIntervalMinutes * 60 * 1000;
 
     if (latest.id !== snapshot.displayedImage.id && enoughTimePassed) {
+      setHistoryIndex(0);
       transitionTo(latest);
     }
   }
@@ -219,17 +217,14 @@ export default function App() {
       return true;
     }
 
-    if (snapshot.live || currentIndex <= 0) {
+    if (currentIndex <= 0) {
       return false;
     }
 
     const nextIndex = currentIndex - 1;
 
     setHistoryIndex(nextIndex);
-
-    if (nextIndex === 0) {
-      setLive(true);
-    }
+    setLive(nextIndex === 0);
 
     transitionTo(snapshot.images[nextIndex], { force: true });
     return true;
@@ -244,7 +239,7 @@ export default function App() {
     }
 
     setHistoryIndex(index);
-    setLive(index === 0);
+    setLive(true);
     transitionTo(nextImage, { force: true });
   }
 
@@ -472,9 +467,7 @@ export default function App() {
           images={previewImages}
           isOpen={aboutOpen}
           live={live}
-          localVote={localVote}
           onClose={() => setAboutOpen(false)}
-          onFeedback={sendFeedback}
           onRefreshIntervalChange={handleRefreshIntervalChange}
           onSelectImage={selectImageAtIndex}
           onToggle={() => setAboutOpen((current) => !current)}

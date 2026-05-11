@@ -262,7 +262,9 @@ const DETAILS = [
   'delicate surface texture',
   'museum-style framing energy',
   'tasteful negative space',
-  'convincing brushstroke variation'
+  'convincing brushstroke variation',
+  'large calm areas of visual breathing room',
+  'clean figure-ground separation'
 ];
 
 const PALETTES = [
@@ -280,7 +282,25 @@ const COMPOSITIONS = [
   'strong central focal point',
   'asymmetrical gallery composition',
   'layered foreground and background depth',
-  'negative space that feels intentional'
+  'negative space that feels intentional',
+  'composition that reads clearly from a distance',
+  'open composition with room for hidden forms'
+];
+
+const PERCEPTION_CUES = [
+  'subtle optical illusion energy',
+  'Gestalt-inspired figure-ground play',
+  'ambiguous contours that reward a second look',
+  'hidden-shape composition that reveals itself slowly',
+  'visual grouping that suggests a concealed pattern',
+  'quiet perceptual tension without obvious tricks'
+];
+
+const SPATIAL_CUES = [
+  'generous negative space',
+  'spacious composition with strong visual breathing room',
+  'clear separation between figure and ground',
+  'minimal clutter with elegant open areas'
 ];
 
 function pickWeighted(items, rng) {
@@ -322,6 +342,8 @@ export class PromptGenerator {
     const detail = pick(DETAILS, rng);
     const palette = pick(PALETTES, rng);
     const composition = pick(COMPOSITIONS, rng);
+    const perceptionCue = pick(PERCEPTION_CUES, rng);
+    const spatialCue = pick(SPATIAL_CUES, rng);
 
     const prompt = [
       subject,
@@ -331,6 +353,8 @@ export class PromptGenerator {
       palette,
       composition,
       detail,
+      spatialCue,
+      perceptionCue,
       'high detail',
       'wall art',
       'tasteful image suitable for display in a home',

@@ -32,9 +32,7 @@ export default function About({
   images,
   isOpen,
   live,
-  localVote,
   onClose,
-  onFeedback,
   onToggle,
   onSelectImage,
   refreshIntervalMinutes,
@@ -87,8 +85,15 @@ export default function About({
 
   const intervalOptions = buildIntervalOptions(config);
   const selectedImage = image || images?.[selectedIndex] || null;
-  const feedback = selectedImage?.feedback || { up: 0, down: 0 };
   const displayImages = (images || []).map((entry, index) => ({ entry, index })).reverse();
+  const latestImage = images?.[0] || null;
+  const statusText = !selectedImage
+    ? 'Waiting for image history'
+    : selectedImage.id === latestImage?.id
+      ? 'Live view'
+      : live
+        ? 'Selected frame'
+        : 'Browsing history';
 
   function handleRailPointerDown(event) {
     if (!event.isPrimary || !railRef.current) {
@@ -184,8 +189,9 @@ export default function About({
           </button>
         </div>
 
-        <p className="info-card__body">
-          A quiet clock disguised as a picture. Images generated at random every few minutes. Load fullscreen on a passive display and enjoy. Coded by <a href="https://daveseidman.com" target="_blank">Dave Seidman</a>
+        <p className="info-card__label">Current prompt</p>
+        <p className="info-card__prompt">
+          {selectedImage?.prompt || 'No prompt recorded for this frame yet.'}
         </p>
 
         <label className="field" htmlFor="refresh-interval">
@@ -210,9 +216,7 @@ export default function About({
         <div className="history-gallery">
           <div className="history-gallery__header">
             <p className="history-gallery__status">
-              {selectedImage
-                ? `${live ? 'Live view' : 'Browsing history'} • ${formatDistance(selectedImage)}`
-                : 'Waiting for image history'}
+              {selectedImage ? `${statusText} • ${formatDistance(selectedImage)}` : statusText}
             </p>
           </div>
 
@@ -249,7 +253,7 @@ export default function About({
                     src={entry.imageUrl}
                   />
                   <span className="history-thumb__time">{entry.displayTime}</span>
-                  {index === 0 && <span className="history-thumb__badge">Live</span>}
+                  {entry.id === images?.[0]?.id && <span className="history-thumb__badge">Live</span>}
                 </button>
               );
             })}
@@ -259,29 +263,6 @@ export default function About({
             <div className="history-gallery__footer">
               <p className="history-gallery__meta">
                 {selectedImage.displayDate} • {selectedImage.displayTime}
-              </p>
-              <div className="history-feedback" aria-label="Rate this image">
-                <button
-                  aria-label="Thumbs up"
-                  aria-pressed={localVote === 'up'}
-                  className={`history-feedback__button ${localVote === 'up' ? 'is-active' : ''}`}
-                  onClick={() => onFeedback('up')}
-                  type="button"
-                >
-                  👍
-                </button>
-                <button
-                  aria-label="Thumbs down"
-                  aria-pressed={localVote === 'down'}
-                  className={`history-feedback__button ${localVote === 'down' ? 'is-active' : ''}`}
-                  onClick={() => onFeedback('down')}
-                  type="button"
-                >
-                  👎
-                </button>
-              </div>
-              <p className="history-gallery__meta">
-                {feedback.up || 0} up • {feedback.down || 0} down
               </p>
             </div>
           )}
