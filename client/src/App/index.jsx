@@ -6,7 +6,6 @@ import './index.scss';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const HISTORY_LIMIT = Number.parseInt(import.meta.env.VITE_HISTORY_LIMIT || '1440', 10);
-const HISTORY_PREVIEW_LIMIT = 18;
 const VISITOR_ID_KEY = 'notaclockVisitorId';
 const DRAG_DEAD_ZONE_PX = 8;
 const DRAG_STEP_PX = 56;
@@ -447,8 +446,6 @@ export default function App() {
 
   const selectedIndex = getHistoryIndex({ displayedImage, images, live, historyIndex });
   const localVote = getLocalVote(displayedImage?.id) || null;
-  const previewImages = images.slice(0, HISTORY_PREVIEW_LIMIT);
-
   return (
     <main className="stage">
       <div
@@ -464,7 +461,7 @@ export default function App() {
         <About
           config={config}
           image={displayedImage}
-          images={previewImages}
+          images={images}
           isOpen={aboutOpen}
           live={live}
           onClose={() => setAboutOpen(false)}

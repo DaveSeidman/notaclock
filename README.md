@@ -106,14 +106,15 @@ This can stay as one GitHub repo. The Render backend and GitHub Pages frontend e
 
 ### 1. Render API
 
-The backend starter config is in [render.yaml](/Users/daveseidman/Documents/personal/notaclock/render.yaml). It is currently configured for Render's free web service tier:
+The backend starter config is in [render.yaml](/Users/daveseidman/Documents/personal/notaclock/render.yaml). It is currently configured for a disk-backed Render web service:
 
 - service name: `notaclock-api`
-- instance type: `free`
+- instance type: `starter`
 - build command: `npm ci && npm run build:server`
 - start command: `npm --workspace server run start`
 - health check: `/api/health`
-- storage: ephemeral `/tmp/notaclock`, used by `MEDIA_ROOT=/tmp/notaclock`
+- persistent disk mount path: `/var/data`
+- app media root: `MEDIA_ROOT=/var/data/notaclock`
 
 You can create this as a normal Web Service and enter the settings above manually. If you use a Blueprint, Render will prompt for the secret values marked `sync: false`. Set these first:
 
@@ -124,12 +125,12 @@ You can create this as a normal Web Service and enter the settings above manuall
 
 If Render gives the service a different URL, use that actual URL for both `PUBLIC_API_URL` and the GitHub `VITE_API_BASE_URL` variable. If GitHub Pages serves this repo at `https://<username>.github.io/notaclock/`, keep `CORS_ORIGIN` as `https://<username>.github.io` because browser origins do not include path segments. If you do not know the Pages URL yet, you can temporarily set `CORS_ORIGIN=*` and tighten it after the frontend is live.
 
-The app stores final images, masks, the current image index, aggregate feedback, and per-click feedback events under `MEDIA_ROOT`. On the free Render tier, this data is intentionally temporary and will be lost whenever the service spins down, restarts, or redeploys. The main files for analysis while the process is alive are:
+The app stores final images, masks, the current image index, aggregate feedback, and per-click feedback events under `MEDIA_ROOT`. With the disk-backed setup above, those files survive restarts and redeploys as long as they remain inside the retention window. The main files for analysis are:
 
 - `index.json`: current rolling image records, prompts, filenames, and aggregate thumbs-up/thumbs-down counts
 - `feedback-events.jsonl`: one JSON event per viewer vote or vote change
 
-Important note: this free-tier setup is good for testing the public experience, but it is not a durable week-long experiment. To preserve a week of images and feedback, upgrade the service to `starter`, add a persistent disk, set `MEDIA_ROOT=/var/data/notaclock`, and increase `RETENTION_HOURS=168`.
+Important note: `RETENTION_HOURS` is still `24` by default, so the app will intentionally delete anything older than a day even on a persistent disk. If you want a week of history instead, increase `RETENTION_HOURS=168`.
 
 ### 2. GitHub Pages Client
 

@@ -2,11 +2,14 @@ services:
   - type: web
     name: notaclock-api
     runtime: node
-    plan: free
+    plan: starter
     rootDir: .
     buildCommand: npm ci && npm run build:server
     startCommand: npm --workspace server run start
     healthCheckPath: /api/health
+    disk:
+      name: data
+      mountPath: /var/data
     buildFilter:
       paths:
         - package.json
@@ -62,4 +65,4 @@ services:
       - key: FAL_SCHEDULER
         value: Euler
       - key: MEDIA_ROOT
-        value: /tmp/notaclock
+        value: /var/data/notaclock

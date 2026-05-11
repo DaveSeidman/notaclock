@@ -48,7 +48,8 @@ export default function About({
     pointerId: null,
     startX: 0,
     scrollLeft: 0,
-    dragged: false
+    dragged: false,
+    pressedIndex: null
   });
   const suppressClickUntilRef = useRef(0);
 
@@ -104,7 +105,8 @@ export default function About({
       pointerId: event.pointerId,
       startX: event.clientX,
       scrollLeft: railRef.current.scrollLeft,
-      dragged: false
+      dragged: false,
+      pressedIndex: Number.parseInt(event.target?.closest?.('[data-history-index]')?.dataset?.historyIndex || '', 10)
     };
 
     railRef.current.setPointerCapture?.(event.pointerId);
@@ -143,13 +145,17 @@ export default function About({
 
     if (drag.dragged) {
       suppressClickUntilRef.current = Date.now() + DRAG_SUPPRESS_MS;
+    } else if (Number.isInteger(drag.pressedIndex)) {
+      event.preventDefault();
+      onSelectImage(drag.pressedIndex);
     }
 
     dragRef.current = {
       pointerId: null,
       startX: 0,
       scrollLeft: 0,
-      dragged: false
+      dragged: false,
+      pressedIndex: null
     };
     setRailDragging(false);
   }
@@ -235,8 +241,13 @@ export default function About({
                 <button
                   aria-pressed={isSelected}
                   className={`history-thumb ${isSelected ? 'is-selected' : ''}`}
+                  data-history-index={index}
                   key={entry.id}
-                  onClick={() => handleThumbnailSelect(index)}
+                  onClick={(event) => {
+                    if (event.detail === 0) {
+                      handleThumbnailSelect(index);
+                    }
+                  }}
                   ref={(node) => {
                     if (node) {
                       thumbnailRefs.current.set(entry.id, node);
@@ -250,6 +261,8 @@ export default function About({
                     alt={`${entry.displayDate} ${entry.displayTime}`}
                     className="history-thumb__image"
                     draggable={false}
+                    loading="lazy"
+                    decoding="async"
                     src={entry.imageUrl}
                   />
                   <span className="history-thumb__time">{entry.displayTime}</span>
