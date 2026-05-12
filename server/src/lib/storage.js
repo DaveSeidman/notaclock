@@ -61,6 +61,17 @@ export class ImageStore {
     return payload.images.slice(0, limit);
   }
 
+  async getCatalogSummary() {
+    const payload = await this.readIndex();
+    const latest = payload.images[0] ?? null;
+
+    return {
+      total: payload.images.length,
+      latestMinuteKey: latest?.minuteKey || null,
+      latestRepresentedAt: latest?.representedAt || null
+    };
+  }
+
   async getLatestImage() {
     const images = await this.getImages(1);
     return images[0] ?? null;

@@ -26,10 +26,12 @@ export function createApiRouter({ config, store, generator, scheduler }) {
 
   router.get('/health', async (req, res) => {
     const latest = await store.getLatestImage();
+    const catalog = await store.getCatalogSummary();
     res.json({
       ok: true,
       renderMode: config.renderMode,
       latestMinuteKey: latest?.minuteKey || null,
+      imageCount: catalog.total,
       nextRunAt: scheduler.nextRunAt
     });
   });
@@ -57,10 +59,13 @@ export function createApiRouter({ config, store, generator, scheduler }) {
       1,
       config.maxHistoryLimit
     );
-    const images = await store.getImages(limit);
+    const [images, catalog] = await Promise.all([store.getImages(limit), store.getCatalogSummary()]);
 
     res.json({
       images: images.map((image) => serializeImage(image, req, config)),
+      total: catalog.total,
+      returned: images.length,
+      latestMinuteKey: catalog.latestMinuteKey,
       serverTime: new Date().toISOString()
     });
   });

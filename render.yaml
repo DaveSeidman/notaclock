@@ -32,6 +32,8 @@ services:
         value: 5
       - key: GENERATION_JITTER_MINUTES
         value: 4
+      - key: PROTECTED_IMAGE_UPVOTES
+        value: 2
       - key: MIN_REFRESH_INTERVAL_MINUTES
         value: 5
       - key: MAX_REFRESH_INTERVAL_MINUTES

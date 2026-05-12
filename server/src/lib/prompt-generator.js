@@ -210,6 +210,24 @@ const COLLECTIONS = [
     moods: ['designed and atmospheric', 'elegant with strong geometry', 'quietly monumental']
   },
   {
+    key: 'hedge-maze',
+    weight: 7,
+    subjects: [
+      'overhead photograph of a manicured hedge maze',
+      'drone photo of a historic garden labyrinth',
+      'aerial view of clipped boxwood hedges and pale gravel paths',
+      'formal estate hedge maze photographed from above',
+      'sunlit garden maze with winding paths and sculpted greenery'
+    ],
+    styles: [
+      'crisp editorial landscape photograph',
+      'fine art aerial garden photography',
+      'high-resolution drone photograph',
+      'architectural garden photography'
+    ],
+    moods: ['quietly intricate', 'elegant and naturalistic', 'ordered but mysterious']
+  },
+  {
     key: 'poster',
     weight: 7,
     subjects: [
@@ -344,6 +362,10 @@ export class PromptGenerator {
     const composition = pick(COMPOSITIONS, rng);
     const perceptionCue = pick(PERCEPTION_CUES, rng);
     const spatialCue = pick(SPATIAL_CUES, rng);
+    const collectionCue =
+      collection.key === 'hedge-maze'
+        ? 'maze paths and hedge walls subtly draw out hidden numeral forms'
+        : null;
 
     const prompt = [
       subject,
@@ -353,13 +375,14 @@ export class PromptGenerator {
       palette,
       composition,
       detail,
+      collectionCue,
       spatialCue,
       perceptionCue,
       'high detail',
       'wall art',
       'tasteful image suitable for display in a home',
       'no visible text'
-    ].join(', ');
+    ].filter(Boolean).join(', ');
 
     return {
       prompt,

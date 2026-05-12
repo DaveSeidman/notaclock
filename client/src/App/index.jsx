@@ -10,6 +10,7 @@ const VISITOR_ID_KEY = 'notaclockVisitorId';
 const DRAG_DEAD_ZONE_PX = 8;
 const DRAG_STEP_PX = 56;
 const DRAG_VERTICAL_CANCEL_PX = 14;
+const LOG_PREFIX = '[notaclock]';
 
 function feedbackKey(imageId) {
   return `feedback:${imageId}`;
@@ -117,6 +118,15 @@ export default function App() {
     console.warn(message);
   }
 
+  function logInfo(message, details) {
+    if (details === undefined) {
+      console.info(`${LOG_PREFIX} ${message}`);
+      return;
+    }
+
+    console.info(`${LOG_PREFIX} ${message}`, details);
+  }
+
   function transitionTo(record, options = {}) {
     if (!record?.imageUrl) {
       return;
@@ -169,6 +179,10 @@ export default function App() {
     }
 
     maybeAdvanceLive(nextImages[0]);
+    return {
+      ...payload,
+      images: nextImages
+    };
   }
 
   async function refreshCurrent() {
@@ -180,18 +194,19 @@ export default function App() {
     }
 
     const snapshot = stateRef.current;
-    const nextImages =
-      snapshot.images[0]?.id === current.id
-        ? [current, ...snapshot.images.slice(1)]
-        : [current, ...snapshot.images.filter((image) => image.id !== current.id)];
 
-    setImages(nextImages);
+    setImages((currentImages) =>
+      currentImages[0]?.id === current.id
+        ? [current, ...currentImages.slice(1)]
+        : [current, ...currentImages.filter((image) => image.id !== current.id)]
+    );
 
     if (snapshot.displayedImage?.id === current.id) {
       setDisplayedImage(current);
     }
 
     maybeAdvanceLive(current);
+    return payload;
   }
 
   function stepHistory(direction) {
@@ -372,6 +387,7 @@ export default function App() {
 
     async function init() {
       try {
+        logInfo(`app booting, reaching out to server at ${API_BASE}`);
         const configPayload = await fetchJson('/api/config');
 
         if (cancelled) {
@@ -383,8 +399,28 @@ export default function App() {
         setConfig(configPayload);
         setRefreshIntervalMinutes(clamped);
         localStorage.setItem('refreshIntervalMinutes', String(clamped));
-        await refreshHistory();
-        await refreshCurrent();
+        const historyPayload = await refreshHistory();
+
+        if (cancelled) {
+          return;
+        }
+
+        const serverImageCount = historyPayload.total ?? historyPayload.images.length;
+        const latest = historyPayload.images[0];
+        logInfo(`server has ${serverImageCount} images already generated, grabbing the latest`, {
+          returned: historyPayload.returned ?? historyPayload.images.length,
+          latestMinuteKey: historyPayload.latestMinuteKey ?? latest?.minuteKey ?? null
+        });
+
+        const currentPayload = await refreshCurrent();
+
+        if (cancelled) {
+          return;
+        }
+
+        logInfo('latest image ready', {
+          minuteKey: currentPayload?.image?.minuteKey ?? latest?.minuteKey ?? null
+        });
       } catch (error) {
         logWarning(`Could not load the API: ${error.message}`);
       }

@@ -3,6 +3,10 @@ import path from 'node:path';
 import { createTimeMask } from './time-mask.js';
 import { createSeedFromString, formatDisplayDate, formatDisplayTime, formatMinuteKey } from './utils.js';
 
+function getUpvotes(record) {
+  return Math.max(0, Number.parseInt(record?.feedback?.up, 10) || 0);
+}
+
 export class ImageGeneratorService {
   constructor({ config, store, promptGenerator, falRenderer, comfyClient, mockRenderer }) {
     this.config = config;
@@ -19,7 +23,18 @@ export class ImageGeneratorService {
     const existing = !options.force ? await this.store.findByMinuteKey(minuteKey) : null;
 
     if (existing) {
-      return this.ensureDerivedAssets(existing);
+      const upvotes = getUpvotes(existing);
+
+      if (upvotes > this.config.protectedImageUpvotes) {
+        console.log(
+          `[notaclock] skipping ${minuteKey}; existing image has ${upvotes} upvotes, above protected threshold ${this.config.protectedImageUpvotes}`
+        );
+        return this.ensureDerivedAssets(existing);
+      }
+
+      console.log(
+        `[notaclock] regenerating ${minuteKey}; existing image has ${upvotes} upvotes, at or below protected threshold ${this.config.protectedImageUpvotes}`
+      );
     }
 
     const displayTime = formatDisplayTime(representedAt, this.config.clockTimezone, this.config.clockFormat);

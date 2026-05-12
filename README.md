@@ -84,6 +84,8 @@ Every scheduled run, currently once per five-minute bucket with a random 0-4 min
 4. It renders the final artwork using Fal, ComfyUI, or the built-in mock renderer.
 5. It stores the output plus metadata and deletes images older than `RETENTION_HOURS`.
 
+On boot, the server logs how many generated images are already in the media index before it schedules the next run. If a scheduled run lands on a time that already has an image, the server regenerates that slot unless the existing image has more than `PROTECTED_IMAGE_UPVOTES` thumbs-up votes. The default threshold is `2`, so liked images are preserved while weaker pre-existing slots can be refreshed.
+
 The frontend polls the latest image, crossfades between frames, keeps the on-screen UI nearly invisible, reveals the control layer on demand, and still lets the viewer choose a display cadence from 5 minutes to 1 hour while rewinding recent history from the keyboard.
 
 ## API

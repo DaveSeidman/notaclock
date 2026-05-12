@@ -9,9 +9,21 @@ export class GenerationScheduler {
   }
 
   async start() {
-    await this.generator.generateForDate(new Date());
+    const summary = await this.store.getCatalogSummary();
+    console.log(
+      `[notaclock] app booting, media store has ${summary.total} images already generated${
+        summary.latestMinuteKey ? `, latest is ${summary.latestMinuteKey}` : ''
+      }`
+    );
 
-    this.scheduleNextRun();
+    try {
+      const image = await this.generator.generateForDate(new Date());
+      console.log(`[notaclock] boot generation check complete, latest candidate is ${image.minuteKey}`);
+    } catch (error) {
+      console.error('[notaclock] boot generation failed', error);
+    } finally {
+      this.scheduleNextRun();
+    }
   }
 
   stop() {
@@ -44,6 +56,7 @@ export class GenerationScheduler {
     const delay = Math.max(1000, nextTick - now);
 
     this.nextRunAt = new Date(nextTick).toISOString();
+    console.log(`[notaclock] next generation check at ${this.nextRunAt}`);
     this.timeoutId = setTimeout(() => {
       void this.run();
     }, delay);
@@ -58,7 +71,8 @@ export class GenerationScheduler {
     this.running = true;
 
     try {
-      await this.generator.generateForDate(new Date());
+      const image = await this.generator.generateForDate(new Date());
+      console.log(`[notaclock] generation check complete, latest candidate is ${image.minuteKey}`);
     } catch (error) {
       console.error('[notaclock] generation failed', error);
     } finally {

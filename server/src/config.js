@@ -62,6 +62,7 @@ export function loadConfig() {
     min: 0,
     max: Math.max(0, generationIntervalMinutes - 1)
   });
+  const protectedImageUpvotes = readInt('PROTECTED_IMAGE_UPVOTES', 2, { min: 0, max: 100000 });
   const minRefreshIntervalMinutes = readInt('MIN_REFRESH_INTERVAL_MINUTES', 5, { min: 5, max: 60 });
   const maxRefreshIntervalMinutes = readInt('MAX_REFRESH_INTERVAL_MINUTES', 60, { min: minRefreshIntervalMinutes, max: 60 });
   const refreshIntervalStepMinutes = readInt('REFRESH_INTERVAL_STEP_MINUTES', 5, { min: 1, max: maxRefreshIntervalMinutes });
@@ -78,6 +79,7 @@ export function loadConfig() {
     imageSize: readInt('IMAGE_SIZE', 1024, { min: 512, max: 2048 }),
     generationIntervalMinutes,
     generationJitterMinutes,
+    protectedImageUpvotes,
     retentionHours: readInt('RETENTION_HOURS', 24, { min: 1, max: 168 }),
     minRefreshIntervalMinutes,
     maxRefreshIntervalMinutes,
