@@ -17,6 +17,19 @@ function normalizeFeedback(feedback = {}) {
   };
 }
 
+function getTimeSlotKey(record) {
+  if (record?.timeSlotKey) {
+    return record.timeSlotKey;
+  }
+
+  const match = String(record?.minuteKey || '').match(/-(\d{4})$/);
+  return match ? match[1] : '';
+}
+
+function isProtected(record) {
+  return record?.protected === true;
+}
+
 export class ImageStore {
   constructor(config) {
     this.config = config;
@@ -80,6 +93,36 @@ export class ImageStore {
   async findByMinuteKey(minuteKey) {
     const payload = await this.readIndex();
     return payload.images.find((image) => image.minuteKey === minuteKey) ?? null;
+  }
+
+  async findProtectedByTimeSlot(timeSlotKey) {
+    const payload = await this.readIndex();
+    return payload.images.find((image) => isProtected(image) && getTimeSlotKey(image) === timeSlotKey) ?? null;
+  }
+
+  async updateProtection(id, protectedValue) {
+    return this.withLock(async () => {
+      const payload = await this.readIndex();
+      const imageIndex = payload.images.findIndex((image) => image.minuteKey === id || image.id === id);
+
+      if (imageIndex === -1) {
+        return null;
+      }
+
+      const image = { ...payload.images[imageIndex] };
+      image.protected = Boolean(protectedValue);
+      image.timeSlotKey = getTimeSlotKey(image);
+
+      if (image.protected) {
+        image.protectedAt = new Date().toISOString();
+      } else {
+        delete image.protectedAt;
+      }
+
+      payload.images[imageIndex] = image;
+      await this.writeIndex(payload);
+      return image;
+    });
   }
 
   async addImage(record) {
@@ -149,7 +192,7 @@ export class ImageStore {
 
       for (const image of payload.images) {
         const timestamp = Date.parse(image.representedAt || image.createdAt);
-        if (Number.isFinite(timestamp) && timestamp < cutoff) {
+        if (!isProtected(image) && Number.isFinite(timestamp) && timestamp < cutoff) {
           remove.push(image);
         } else {
           keep.push(image);
@@ -160,12 +203,27 @@ export class ImageStore {
         return 0;
       }
 
-      for (const image of remove) {
-        await removeIfExists(path.join(this.config.generatedDir, image.imageFilename));
+      const referencedFilenames = new Set();
+      for (const image of keep) {
+        if (image.imageFilename) {
+          referencedFilenames.add(`generated/${image.imageFilename}`);
+        }
         if (image.maskFilename) {
-          await removeIfExists(path.join(this.config.maskDir, image.maskFilename));
+          referencedFilenames.add(`masks/${image.maskFilename}`);
         }
         if (image.overlayFilename) {
+          referencedFilenames.add(`overlays/${image.overlayFilename}`);
+        }
+      }
+
+      for (const image of remove) {
+        if (image.imageFilename && !referencedFilenames.has(`generated/${image.imageFilename}`)) {
+          await removeIfExists(path.join(this.config.generatedDir, image.imageFilename));
+        }
+        if (image.maskFilename && !referencedFilenames.has(`masks/${image.maskFilename}`)) {
+          await removeIfExists(path.join(this.config.maskDir, image.maskFilename));
+        }
+        if (image.overlayFilename && !referencedFilenames.has(`overlays/${image.overlayFilename}`)) {
           await removeIfExists(path.join(this.config.overlayDir, image.overlayFilename));
         }
       }

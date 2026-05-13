@@ -76,6 +76,7 @@ export function loadConfig() {
     port: readInt('PORT', 3000, { min: 1 }),
     publicApiUrl: process.env.PUBLIC_API_URL?.trim() || '',
     corsOrigin: process.env.CORS_ORIGIN?.trim() || '*',
+    adminPassword: process.env.ADMIN_PASSWORD?.trim() || '',
     imageSize: readInt('IMAGE_SIZE', 1024, { min: 512, max: 2048 }),
     generationIntervalMinutes,
     generationJitterMinutes,

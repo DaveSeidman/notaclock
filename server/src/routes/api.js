@@ -20,6 +20,23 @@ function serializeImage(record, req, config) {
   };
 }
 
+function getAdminPassword(req) {
+  return req.get('x-admin-password') || req.body?.password || req.query?.password || '';
+}
+
+function requireAdmin(req, res, config) {
+  if (!config.adminPassword) {
+    return true;
+  }
+
+  if (getAdminPassword(req) === config.adminPassword) {
+    return true;
+  }
+
+  res.status(401).json({ error: 'Admin password required.' });
+  return false;
+}
+
 export function createApiRouter({ config, store, generator, scheduler }) {
   const router = express.Router();
   const validVotes = new Set(['up', 'down']);
@@ -43,6 +60,7 @@ export function createApiRouter({ config, store, generator, scheduler }) {
       imageSize: config.imageSize,
       retentionHours: config.retentionHours,
       renderMode: config.renderMode,
+      adminRequiresPassword: Boolean(config.adminPassword),
       refreshInterval: {
         min: config.minRefreshIntervalMinutes,
         max: config.maxRefreshIntervalMinutes,
@@ -76,6 +94,49 @@ export function createApiRouter({ config, store, generator, scheduler }) {
       image: serializeImage(latest, req, config),
       serverTime: new Date().toISOString()
     });
+  });
+
+  router.get('/admin/images', async (req, res) => {
+    if (!requireAdmin(req, res, config)) {
+      return;
+    }
+
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = clamp(
+      Number.isNaN(requestedLimit) ? config.maxHistoryLimit : requestedLimit,
+      1,
+      config.maxHistoryLimit
+    );
+    const images = await store.getImages(limit);
+    const protectedCount = images.filter((image) => image.protected).length;
+
+    res.json({
+      images: images.map((image) => serializeImage(image, req, config)),
+      protectedCount,
+      total: images.length,
+      serverTime: new Date().toISOString()
+    });
+  });
+
+  router.post('/admin/images/:id/protection', async (req, res, next) => {
+    try {
+      if (!requireAdmin(req, res, config)) {
+        return;
+      }
+
+      const image = await store.updateProtection(req.params.id, req.body?.protected !== false);
+
+      if (!image) {
+        res.status(404).json({ error: 'Image not found.' });
+        return;
+      }
+
+      res.json({
+        image: serializeImage(image, req, config)
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   router.post('/images/:id/feedback', async (req, res, next) => {

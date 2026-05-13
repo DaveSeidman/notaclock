@@ -88,12 +88,18 @@ On boot, the server logs how many generated images are already in the media inde
 
 The frontend polls the latest image, crossfades between frames, keeps the on-screen UI nearly invisible, reveals the control layer on demand, and still lets the viewer choose a display cadence from 5 minutes to 1 hour while rewinding recent history from the keyboard.
 
+## Admin Keepers
+
+Open `/#admin` to review generated images and mark strong compositions as keepers. Set `ADMIN_PASSWORD` on the API service to require a simple password for this view and its write endpoints. When an image is kept, its local clock minute is locked; future scheduled runs for that same minute reuse the protected image instead of calling the renderer again. Protected source records are excluded from retention cleanup so the shared files stay available.
+
 ## API
 
 - `GET /api/health`
 - `GET /api/config`
 - `GET /api/images`
 - `GET /api/images/current`
+- `GET /api/admin/images`
+- `POST /api/admin/images/:id/protection`
 - `POST /api/generate`
 - `GET /social-image.png`
 

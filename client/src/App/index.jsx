@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Admin from './Admin';
 import About from './About';
 import ClockImage from './ClockImage';
 import Info from './Info';
@@ -72,6 +73,11 @@ function getHistoryIndex(snapshot) {
 
 function isInteractiveElement(target) {
   return Boolean(target?.closest?.('button, select, input, textarea, label, a, .info-card, .source-card'));
+}
+
+function isAdminView() {
+  const params = new URLSearchParams(window.location.search);
+  return window.location.hash === '#admin' || params.has('admin');
 }
 
 async function fetchJson(path) {
@@ -257,6 +263,14 @@ export default function App() {
     transitionTo(nextImage, { force: true });
   }
 
+  function updateImageRecord(updatedImage) {
+    setImages((currentImages) => currentImages.map((image) => (image.id === updatedImage.id ? updatedImage : image)));
+
+    if (stateRef.current.displayedImage?.id === updatedImage.id) {
+      setDisplayedImage(updatedImage);
+    }
+  }
+
   async function sendFeedback(vote) {
     const record = stateRef.current.displayedImage;
 
@@ -290,8 +304,7 @@ export default function App() {
       const updatedImage = payload.image;
 
       if (updatedImage) {
-        setDisplayedImage(updatedImage);
-        setImages((currentImages) => currentImages.map((image) => (image.id === updatedImage.id ? updatedImage : image)));
+        updateImageRecord(updatedImage);
       }
     } catch (error) {
       setLocalVote(record.id, previousVote);
@@ -482,6 +495,19 @@ export default function App() {
 
   const selectedIndex = getHistoryIndex({ displayedImage, images, live, historyIndex });
   const localVote = getLocalVote(displayedImage?.id) || null;
+
+  if (isAdminView()) {
+    return (
+      <Admin
+        apiBase={API_BASE}
+        config={config}
+        images={images}
+        onImageUpdated={updateImageRecord}
+        onRefreshHistory={refreshHistory}
+      />
+    );
+  }
+
   return (
     <main className="stage">
       <div

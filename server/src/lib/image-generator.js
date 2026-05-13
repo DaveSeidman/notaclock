@@ -7,6 +7,11 @@ function getUpvotes(record) {
   return Math.max(0, Number.parseInt(record?.feedback?.up, 10) || 0);
 }
 
+function getTimeSlotKey(minuteKey) {
+  const match = String(minuteKey).match(/-(\d{4})$/);
+  return match ? match[1] : '';
+}
+
 export class ImageGeneratorService {
   constructor({ config, store, promptGenerator, falRenderer, comfyClient, mockRenderer }) {
     this.config = config;
@@ -20,18 +25,33 @@ export class ImageGeneratorService {
   async generateForDate(date = new Date(), options = {}) {
     const representedAt = new Date(date);
     const minuteKey = formatMinuteKey(representedAt, this.config.clockTimezone);
+    const timeSlotKey = getTimeSlotKey(minuteKey);
     const existing = !options.force ? await this.store.findByMinuteKey(minuteKey) : null;
 
     if (existing) {
       const upvotes = getUpvotes(existing);
 
-      if (upvotes > this.config.protectedImageUpvotes) {
+      if (existing.protected || upvotes > this.config.protectedImageUpvotes) {
         console.log(
-          `[notaclock] skipping ${minuteKey}; existing image has ${upvotes} upvotes, above protected threshold ${this.config.protectedImageUpvotes}`
+          `[notaclock] skipping ${minuteKey}; existing image is protected or has ${upvotes} upvotes`
         );
         return this.ensureDerivedAssets(existing);
       }
+    }
 
+    if (!options.force) {
+      const protectedSource = await this.store.findProtectedByTimeSlot(timeSlotKey);
+
+      if (protectedSource) {
+        console.log(
+          `[notaclock] reusing protected ${protectedSource.minuteKey} for ${minuteKey}; time slot ${timeSlotKey} is locked`
+        );
+        return this.reuseProtectedImage(protectedSource, representedAt, minuteKey, timeSlotKey);
+      }
+    }
+
+    if (existing) {
+      const upvotes = getUpvotes(existing);
       console.log(
         `[notaclock] regenerating ${minuteKey}; existing image has ${upvotes} upvotes, at or below protected threshold ${this.config.protectedImageUpvotes}`
       );
@@ -87,6 +107,7 @@ export class ImageGeneratorService {
     const record = {
       id: minuteKey,
       minuteKey,
+      timeSlotKey,
       representedAt: representedAt.toISOString(),
       createdAt: new Date().toISOString(),
       displayTime,
@@ -135,6 +156,33 @@ export class ImageGeneratorService {
     }
 
     return this.store.addImage(nextRecord);
+  }
+
+  async reuseProtectedImage(sourceRecord, representedAt, minuteKey, timeSlotKey) {
+    const displayTime = formatDisplayTime(representedAt, this.config.clockTimezone, this.config.clockFormat);
+    const displayDate = formatDisplayDate(representedAt, this.config.clockTimezone);
+    const record = {
+      ...sourceRecord,
+      id: minuteKey,
+      minuteKey,
+      timeSlotKey,
+      representedAt: representedAt.toISOString(),
+      createdAt: new Date().toISOString(),
+      displayTime,
+      displayDate,
+      protected: false,
+      protectedAt: undefined,
+      reusedFromMinuteKey: sourceRecord.minuteKey,
+      reusedFromImageId: sourceRecord.id,
+      renderMode: `reuse:${sourceRecord.renderMode}`,
+      fallbackReason: '',
+      note: `Reused protected image from ${sourceRecord.displayDate || sourceRecord.minuteKey} ${sourceRecord.displayTime || ''}`.trim(),
+      feedback: { up: 0, down: 0 }
+    };
+
+    delete record.feedbackUpdatedAt;
+
+    return this.store.addImage(record);
   }
 
   async renderImage({ prompt, negativePrompt, maskBuffer, minuteKey, timeLabel, seed }) {

@@ -4,12 +4,12 @@
 .stage__overlay,
 .stage__wash {
   position: absolute;
-  inset: 0;
+  inset: -1px;
 }
 
 .stage__image {
-  width: 100%;
-  height: 100%;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
   object-fit: cover;
   user-select: none;
   will-change: transform;
@@ -30,8 +30,8 @@
 }
 
 .stage__overlay {
-  width: 100%;
-  height: 100%;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
   object-fit: cover;
   pointer-events: none;
   user-select: none;
@@ -48,7 +48,5 @@
 
 .stage__wash {
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(8, 8, 8, 0.08) 0%, rgba(8, 8, 8, 0.22) 100%),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 26%);
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0.08) 0%, rgba(8, 8, 8, 0.22) 100%);
 }
