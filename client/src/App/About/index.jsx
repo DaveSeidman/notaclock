@@ -26,6 +26,58 @@ function buildIntervalOptions(config) {
   return Array.from({ length: optionCount }, (_, index) => interval.min + index * step);
 }
 
+function HistoryThumbnailImage({ entry, eager, rootRef }) {
+  const imageRef = useRef(null);
+  const [shouldLoad, setShouldLoad] = useState(eager);
+
+  useEffect(() => {
+    if (eager) {
+      setShouldLoad(true);
+      return undefined;
+    }
+
+    const node = imageRef.current;
+
+    if (!node) {
+      return undefined;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      setShouldLoad(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([item]) => {
+        if (item.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      {
+        root: rootRef.current,
+        rootMargin: '180px 260px'
+      }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [eager, entry.id, rootRef]);
+
+  return (
+    <img
+      alt={`${entry.displayDate} ${entry.displayTime}`}
+      className="history-thumb__image"
+      decoding="async"
+      draggable={false}
+      fetchPriority={eager ? 'high' : 'auto'}
+      loading={eager ? 'eager' : 'lazy'}
+      ref={imageRef}
+      src={shouldLoad ? entry.imageUrl : undefined}
+    />
+  );
+}
+
 export default function About({
   config,
   image,
@@ -71,6 +123,10 @@ export default function About({
   }, [isOpen, onClose]);
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     const thumbnail = thumbnailRefs.current.get(image?.id);
 
     if (!thumbnail) {
@@ -82,11 +138,11 @@ export default function About({
       block: 'nearest',
       inline: 'center'
     });
-  }, [image?.id]);
+  }, [image?.id, isOpen]);
 
   const intervalOptions = buildIntervalOptions(config);
   const selectedImage = image || images?.[selectedIndex] || null;
-  const displayImages = (images || []).map((entry, index) => ({ entry, index })).reverse();
+  const displayImages = isOpen ? (images || []).map((entry, index) => ({ entry, index })) : [];
   const latestImage = images?.[0] || null;
   const statusText = !selectedImage
     ? 'Waiting for image history'
@@ -257,13 +313,10 @@ export default function About({
                   }}
                   type="button"
                 >
-                  <img
-                    alt={`${entry.displayDate} ${entry.displayTime}`}
-                    className="history-thumb__image"
-                    draggable={false}
-                    loading="lazy"
-                    decoding="async"
-                    src={entry.imageUrl}
+                  <HistoryThumbnailImage
+                    eager={isSelected || entry.id === images?.[0]?.id}
+                    entry={entry}
+                    rootRef={railRef}
                   />
                   <span className="history-thumb__time">{entry.displayTime}</span>
                   {entry.id === images?.[0]?.id && <span className="history-thumb__badge">Live</span>}

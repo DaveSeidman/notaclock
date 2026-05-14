@@ -85,8 +85,11 @@ export default function ClockImage({ image }) {
         <img
           alt={slot.alt}
           className={`stage__image ${index === renderState.activeSlot ? 'is-visible' : ''}`}
+          decoding="async"
           draggable={false}
+          fetchPriority={index === renderState.activeSlot ? 'high' : 'auto'}
           key={`image-${index}`}
+          loading={index === renderState.activeSlot ? 'eager' : 'lazy'}
           src={slot.imageUrl || undefined}
         />
       ))}
@@ -94,8 +97,10 @@ export default function ClockImage({ image }) {
         <img
           alt=""
           className={`stage__overlay ${index === renderState.activeSlot ? 'is-visible' : ''}`}
+          decoding="async"
           draggable={false}
           key={`overlay-${index}`}
+          loading="lazy"
           src={slot.maskUrl || undefined}
         />
       ))}

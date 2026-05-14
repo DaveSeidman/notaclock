@@ -412,6 +412,16 @@ export default function App() {
         setConfig(configPayload);
         setRefreshIntervalMinutes(clamped);
         localStorage.setItem('refreshIntervalMinutes', String(clamped));
+        const currentPayload = await refreshCurrent();
+
+        if (cancelled) {
+          return;
+        }
+
+        logInfo('latest image ready', {
+          minuteKey: currentPayload?.image?.minuteKey ?? null
+        });
+
         const historyPayload = await refreshHistory();
 
         if (cancelled) {
@@ -423,16 +433,6 @@ export default function App() {
         logInfo(`server has ${serverImageCount} images already generated, grabbing the latest`, {
           returned: historyPayload.returned ?? historyPayload.images.length,
           latestMinuteKey: historyPayload.latestMinuteKey ?? latest?.minuteKey ?? null
-        });
-
-        const currentPayload = await refreshCurrent();
-
-        if (cancelled) {
-          return;
-        }
-
-        logInfo('latest image ready', {
-          minuteKey: currentPayload?.image?.minuteKey ?? latest?.minuteKey ?? null
         });
       } catch (error) {
         logWarning(`Could not load the API: ${error.message}`);

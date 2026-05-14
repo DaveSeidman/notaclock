@@ -307,11 +307,25 @@ const COMPOSITIONS = [
 
 const PERCEPTION_CUES = [
   'subtle optical illusion energy',
+  'M.C. Escher-inspired perceptual play',
+  'hidden-in-plain-sight forms woven into the image',
+  'impossible geometry handled with quiet restraint',
+  'recursive visual logic that rewards close looking',
+  'tessellated shapes worked naturally into the scene',
   'Gestalt-inspired figure-ground play',
   'ambiguous contours that reward a second look',
   'hidden-shape composition that reveals itself slowly',
   'visual grouping that suggests a concealed pattern',
   'quiet perceptual tension without obvious tricks'
+];
+
+const ESCHER_CUES = [
+  'M.C. Escher-like optical illusion structure',
+  'hidden-in-plain-sight visual puzzle elements',
+  'impossible perspective that still feels elegant',
+  'subtle tessellation and figure-ground ambiguity',
+  'repeating forms that quietly transform into other forms',
+  'architectural perspective with a gentle impossible twist'
 ];
 
 const SPATIAL_CUES = [
@@ -347,7 +361,11 @@ export class PromptGenerator {
 
     if (this.config.promptPresets.length > 0) {
       return {
-        prompt: pick(this.config.promptPresets, rng),
+        prompt: [
+          pick(this.config.promptPresets, rng),
+          pick(ESCHER_CUES, rng),
+          pick(PERCEPTION_CUES, rng)
+        ].join(', '),
         negativePrompt: this.config.negativePrompt
       };
     }
@@ -361,6 +379,7 @@ export class PromptGenerator {
     const palette = pick(PALETTES, rng);
     const composition = pick(COMPOSITIONS, rng);
     const perceptionCue = pick(PERCEPTION_CUES, rng);
+    const escherCue = pick(ESCHER_CUES, rng);
     const spatialCue = pick(SPATIAL_CUES, rng);
     const collectionCue =
       collection.key === 'hedge-maze'
@@ -377,6 +396,7 @@ export class PromptGenerator {
       detail,
       collectionCue,
       spatialCue,
+      escherCue,
       perceptionCue,
       'high detail',
       'wall art',
