@@ -83,6 +83,50 @@ body {
   cursor: grabbing;
 }
 
+.fullscreen-toggle {
+  position: absolute;
+  top: var(--edge-space);
+  right: var(--edge-space);
+  z-index: 2;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--chip-border);
+  border-radius: 999px;
+  appearance: none;
+  background: var(--chip);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+}
+
+.fullscreen-toggle:hover,
+.fullscreen-toggle:focus-visible {
+  border-color: rgba(255, 255, 255, 0.32);
+  outline: none;
+}
+
+.fullscreen-toggle__icon {
+  position: absolute;
+  inset: 0;
+  width: 1.32rem;
+  height: 1.32rem;
+  margin: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fullscreen-toggle__icon.is-hidden {
+  opacity: 0;
+  transform: scale(0.82);
+}
+
 .stage__message {
   position: absolute;
   top: 50%;

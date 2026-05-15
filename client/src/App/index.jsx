@@ -13,6 +13,32 @@ const DRAG_STEP_PX = 56;
 const DRAG_VERTICAL_CANCEL_PX = 14;
 const LOG_PREFIX = '[notaclock]';
 
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function canRequestFullscreen(element) {
+  return Boolean(element?.requestFullscreen || element?.webkitRequestFullscreen);
+}
+
+async function requestFullscreen(element) {
+  if (element.requestFullscreen) {
+    await element.requestFullscreen();
+    return;
+  }
+
+  element.webkitRequestFullscreen?.();
+}
+
+async function exitFullscreen() {
+  if (document.exitFullscreen) {
+    await document.exitFullscreen();
+    return;
+  }
+
+  document.webkitExitFullscreen?.();
+}
+
 function feedbackKey(imageId) {
   return `feedback:${imageId}`;
 }
@@ -103,6 +129,9 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [localVoteVersion, setLocalVoteVersion] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
+  const stageRef = useRef(null);
   const lastTransitionAtRef = useRef(0);
   const stateRef = useRef({});
   const dragRef = useRef({
@@ -327,6 +356,25 @@ export default function App() {
     });
   }
 
+  async function handleFullscreenToggle() {
+    const stage = stageRef.current;
+
+    if (!stage || !canRequestFullscreen(stage)) {
+      return;
+    }
+
+    try {
+      if (getFullscreenElement()) {
+        await exitFullscreen();
+        return;
+      }
+
+      await requestFullscreen(stage);
+    } catch (error) {
+      logWarning(`Fullscreen request failed: ${error.message}`);
+    }
+  }
+
   function resetDrag() {
     dragRef.current = {
       pointerId: null,
@@ -465,6 +513,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const stage = stageRef.current;
+
+    setFullscreenAvailable(canRequestFullscreen(stage) && Boolean(document.fullscreenEnabled ?? true));
+
+    function handleFullscreenChange() {
+      setIsFullscreen(getFullscreenElement() === stage);
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
@@ -484,6 +549,9 @@ export default function App() {
       } else if (event.key.toLowerCase() === 'o') {
         event.preventDefault();
         handleSourceToggle();
+      } else if (event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        void handleFullscreenToggle();
       } else if (event.key === 'Escape') {
         setAboutOpen(false);
       }
@@ -509,7 +577,7 @@ export default function App() {
   }
 
   return (
-    <main className="stage">
+    <main className="stage" ref={stageRef}>
       <div
         className={`stage__frame ${sourceOpen ? 'is-overlay-active' : ''} ${isDragging ? 'is-dragging' : ''}`}
         onPointerCancel={resetDrag}
@@ -520,6 +588,31 @@ export default function App() {
       >
         <ClockImage image={displayedImage} />
         {!displayedImage && <p className="stage__message">next image generating...</p>}
+        {fullscreenAvailable && (
+          <button
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            aria-pressed={isFullscreen}
+            className="fullscreen-toggle"
+            onClick={handleFullscreenToggle}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              className={`fullscreen-toggle__icon ${isFullscreen ? 'is-hidden' : ''}`}
+              viewBox="0 0 24 24"
+            >
+              <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5" />
+            </svg>
+            <svg
+              aria-hidden="true"
+              className={`fullscreen-toggle__icon ${isFullscreen ? '' : 'is-hidden'}`}
+              viewBox="0 0 24 24"
+            >
+              <path d="M9 3v6H3M15 3v6h6M21 15h-6v6M3 15h6v6" />
+            </svg>
+          </button>
+        )}
         <About
           config={config}
           image={displayedImage}
