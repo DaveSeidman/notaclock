@@ -1,7 +1,6 @@
 import './index.scss';
 
-export default function Info({ image, isOpen, localVote, onToggle, onFeedback }) {
-  const feedback = image?.feedback || { up: 0, down: 0 };
+export default function Info({ image, isOpen, onToggle }) {
   const title = isOpen ? 'Hide source control image' : 'Show source control image';
 
   return (
@@ -27,29 +26,6 @@ export default function Info({ image, isOpen, localVote, onToggle, onFeedback })
       <aside className="source-card" hidden={!isOpen || !image}>
         <p className="source-card__label">Current prompt</p>
         <p className="source-card__prompt">{image?.prompt || 'No prompt recorded for this frame.'}</p>
-        <div className="feedback" aria-label="Rate this image">
-          <button
-            aria-label="Thumbs up"
-            aria-pressed={localVote === 'up'}
-            className={`feedback__button ${localVote === 'up' ? 'is-active' : ''}`}
-            onClick={() => onFeedback('up')}
-            type="button"
-          >
-            👍
-          </button>
-          <button
-            aria-label="Thumbs down"
-            aria-pressed={localVote === 'down'}
-            className={`feedback__button ${localVote === 'down' ? 'is-active' : ''}`}
-            onClick={() => onFeedback('down')}
-            type="button"
-          >
-            👎
-          </button>
-        </div>
-        <p className="source-card__meta">
-          {feedback.up || 0} up • {feedback.down || 0} down
-        </p>
       </aside>
     </>
   );

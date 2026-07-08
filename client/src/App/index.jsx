@@ -37,27 +37,6 @@ async function exitFullscreen() {
   document.webkitExitFullscreen?.();
 }
 
-function feedbackKey(imageId) {
-  return `feedback:${imageId}`;
-}
-
-function getLocalVote(imageId) {
-  return imageId ? localStorage.getItem(feedbackKey(imageId)) : null;
-}
-
-function setLocalVote(imageId, vote) {
-  if (!imageId) {
-    return;
-  }
-
-  if (vote) {
-    localStorage.setItem(feedbackKey(imageId), vote);
-    return;
-  }
-
-  localStorage.removeItem(feedbackKey(imageId));
-}
-
 function normalizeRefreshInterval(nextMinutes, interval = { min: 5, max: 60, step: 5, default: 5 }) {
   const min = interval.min ?? 5;
   const max = interval.max ?? 60;
@@ -184,7 +163,6 @@ export default function App() {
   );
   const [sourceOpen, setSourceOpen] = useState(() => localStorage.getItem('overlayEnabled') === 'true');
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [localVoteVersion, setLocalVoteVersion] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
@@ -323,19 +301,6 @@ export default function App() {
     setHistoryIndex(index);
     setLive(index === 0);
     transitionTo(nextImage, { force: true });
-  }
-
-  function sendFeedback(vote) {
-    const record = stateRef.current.displayedImage;
-
-    if (!record) {
-      return;
-    }
-
-    const previousVote = getLocalVote(record.id);
-    const nextVote = previousVote === vote ? null : vote;
-    setLocalVote(record.id, nextVote);
-    setLocalVoteVersion((version) => version + 1);
   }
 
   function handleRefreshIntervalChange(nextMinutes) {
@@ -559,7 +524,6 @@ export default function App() {
   }, []);
 
   const selectedIndex = getHistoryIndex({ displayedImage, images, live, historyIndex });
-  const localVote = getLocalVote(displayedImage?.id) || null;
 
   return (
     <main className="stage" ref={stageRef}>
@@ -605,7 +569,6 @@ export default function App() {
           image={displayedImage}
           images={images}
           isOpen={aboutOpen}
-          live={live}
           onClose={() => setAboutOpen(false)}
           onRefreshIntervalChange={handleRefreshIntervalChange}
           onSelectImage={selectImageAtIndex}
@@ -616,9 +579,6 @@ export default function App() {
         <Info
           image={displayedImage}
           isOpen={sourceOpen}
-          localVote={localVote}
-          localVoteVersion={localVoteVersion}
-          onFeedback={sendFeedback}
           onToggle={handleSourceToggle}
         />
       </div>

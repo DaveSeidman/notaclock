@@ -32,7 +32,7 @@
 .info-card {
   position: absolute;
   left: var(--edge-space);
-  bottom: calc(var(--edge-space) + 1.7rem + 40px);
+  bottom: 4rem;
   z-index: 3;
   width: min(30rem, calc(100vw - 1.8rem));
   max-height: min(70vh, 40rem);
@@ -129,7 +129,7 @@ select {
   min-height: 2.8rem;
   padding: 0 0.95rem;
   border: 1px solid var(--panel-border);
-  border-radius: 999px;
+  border-radius: 3px;
   outline: none;
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
@@ -150,6 +150,9 @@ select:focus-visible {
 }
 
 .history-gallery {
+  --thumb-width: clamp(7.4rem, 24vw, 10rem);
+  --thumb-overlap: clamp(2.2rem, 8vw, 3rem);
+  --thumb-selected-gutter: clamp(0.55rem, 2vw, 0.9rem);
   margin-top: 1rem;
 }
 
@@ -175,13 +178,15 @@ select:focus-visible {
   gap: 0;
   margin-top: 0.85rem;
   margin-inline: -0.4rem;
-  padding: 0.25rem 0.4rem;
+  padding-block: 0.25rem;
+  padding-inline: 0.4rem 2.2rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  scroll-padding-inline: 0.4rem;
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
   touch-action: pan-x;
-  cursor: grab;
   mask-image: linear-gradient(90deg, transparent 0, #000 1.4rem, #000 calc(100% - 1.4rem), transparent 100%);
   -webkit-overflow-scrolling: touch;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 1.4rem, #000 calc(100% - 1.4rem), transparent 100%);
@@ -192,28 +197,25 @@ select:focus-visible {
   display: none;
 }
 
-.history-gallery__rail:active {
-  cursor: grabbing;
-}
-
 .history-thumb {
   position: relative;
-  flex: 0 0 clamp(7.4rem, 24vw, 10rem);
+  flex: 0 0 var(--thumb-width);
   aspect-ratio: 16 / 9;
-  margin-left: -3rem;
+  margin-left: calc(0px - var(--thumb-overlap));
+  margin-right: 0;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 1rem;
+  border-radius: 3px;
   overflow: hidden;
   appearance: none;
   background: rgba(255, 255, 255, 0.04);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
-  scroll-snap-align: center;
+  scroll-snap-align: start;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform 0.22s ease,
     margin-left 0.24s ease,
+    margin-right 0.24s ease,
     border-color 0.22s ease,
     box-shadow 0.22s ease;
 }
@@ -224,12 +226,13 @@ select:focus-visible {
 
 .history-thumb:hover,
 .history-thumb:focus-visible {
-  transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.3);
   outline: none;
 }
 
 .history-thumb.is-selected {
+  margin-left: calc(var(--thumb-selected-gutter) - var(--thumb-overlap));
+  margin-right: var(--thumb-selected-gutter);
   border-color: rgba(255, 255, 255, 0.62);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.2),
@@ -237,16 +240,9 @@ select:focus-visible {
   z-index: 2;
 }
 
-.history-gallery__rail.is-dragging .history-thumb {
-  margin-left: -1.2rem;
-}
-
-.history-gallery__rail.is-dragging .history-thumb:first-child {
+.history-thumb:first-child.is-selected {
   margin-left: 0;
-}
-
-.history-gallery__rail.is-dragging .history-thumb.is-selected {
-  transform: translateY(-2px) scale(1.01);
+  margin-right: var(--thumb-selected-gutter);
 }
 
 .history-thumb__image {
@@ -268,7 +264,6 @@ select:focus-visible {
   pointer-events: none;
 }
 
-.history-thumb__time,
 .history-thumb__badge {
   position: absolute;
   z-index: 1;
@@ -278,11 +273,6 @@ select:focus-visible {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5);
-}
-
-.history-thumb__time {
-  bottom: 0.55rem;
-  color: rgba(255, 255, 255, 0.92);
 }
 
 .history-thumb__badge {
@@ -304,8 +294,8 @@ select:focus-visible {
 }
 
 @media (max-width: 720px) {
-  .history-thumb {
-    flex-basis: min(42vw, 9rem);
-    margin-left: -2.2rem;
+  .history-gallery {
+    --thumb-width: min(42vw, 9rem);
+    --thumb-overlap: 2.2rem;
   }
 }

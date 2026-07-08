@@ -32,8 +32,7 @@ export async function loadStaticCatalog() {
     ? catalog.images.map((image) => ({
         ...image,
         imageUrl: withPublicBase(image.imageUrl),
-        maskUrl: withPublicBase(image.maskUrl),
-        feedback: image.feedback || { up: 0, down: 0 }
+        maskUrl: withPublicBase(image.maskUrl)
       }))
     : [];
 

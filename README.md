@@ -84,7 +84,7 @@ Every 15 seconds the app:
 3. Moves the history rail so the current slot is first.
 4. Transitions to the new current slot only after the selected viewer cadence has elapsed.
 
-The optional source overlay uses the copied mask image. Thumbs-up/thumbs-down are now local browser preferences only; there is no write API in the hosted site.
+The optional source overlay uses the copied mask image. There is no write API in the hosted site.
 
 ## GitHub Pages
 
