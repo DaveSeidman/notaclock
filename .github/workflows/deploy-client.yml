@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - client/**
+      - scripts/build-static-media.mjs
       - package.json
       - package-lock.json
       - .github/workflows/deploy-client.yml
@@ -45,8 +46,9 @@ jobs:
       - name: Build Client
         run: npm run build:client
         env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           VITE_PUBLIC_BASE: ${{ vars.VITE_PUBLIC_BASE || '/' }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+          VITE_CLOCK_TIMEZONE: ${{ vars.VITE_CLOCK_TIMEZONE }}
 
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v5

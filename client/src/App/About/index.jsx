@@ -3,13 +3,12 @@ import './index.scss';
 
 const DRAG_SUPPRESS_MS = 140;
 
-function formatDistance(record) {
-  if (!record?.representedAt) {
+function formatSlotStatus(record) {
+  if (!record) {
     return 'Waiting for image history';
   }
 
-  const deltaMinutes = Math.max(0, Math.round((Date.now() - Date.parse(record.representedAt)) / 60000));
-  return deltaMinutes === 0 ? 'Now' : `${deltaMinutes} minute${deltaMinutes === 1 ? '' : 's'} back`;
+  return record.approved ? 'Approved slot' : 'Open slot';
 }
 
 function buildIntervalOptions(config) {
@@ -147,10 +146,10 @@ export default function About({
   const statusText = !selectedImage
     ? 'Waiting for image history'
     : selectedImage.id === latestImage?.id
-      ? 'Live view'
+      ? 'Current local slot'
       : live
-        ? 'Selected frame'
-        : 'Browsing history';
+        ? 'Waiting for cadence'
+        : 'Browsing cycle';
 
   function handleRailPointerDown(event) {
     if (!event.isPrimary || !railRef.current) {
@@ -278,7 +277,7 @@ export default function About({
         <div className="history-gallery">
           <div className="history-gallery__header">
             <p className="history-gallery__status">
-              {selectedImage ? `${statusText} • ${formatDistance(selectedImage)}` : statusText}
+              {selectedImage ? `${statusText} • ${formatSlotStatus(selectedImage)}` : statusText}
             </p>
           </div>
 
@@ -319,7 +318,7 @@ export default function About({
                     rootRef={railRef}
                   />
                   <span className="history-thumb__time">{entry.displayTime}</span>
-                  {entry.id === images?.[0]?.id && <span className="history-thumb__badge">Live</span>}
+                  {entry.id === images?.[0]?.id && <span className="history-thumb__badge">Now</span>}
                 </button>
               );
             })}

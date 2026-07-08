@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import Admin from './Admin';
 import About from './About';
 import ClockImage from './ClockImage';
 import Info from './Info';
+import { loadStaticCatalog } from './static-catalog';
 import './index.scss';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
-const HISTORY_LIMIT = Number.parseInt(import.meta.env.VITE_HISTORY_LIMIT || '1440', 10);
-const VISITOR_ID_KEY = 'notaclockVisitorId';
 const DRAG_DEAD_ZONE_PX = 8;
 const DRAG_STEP_PX = 56;
 const DRAG_VERTICAL_CANCEL_PX = 14;
 const LOG_PREFIX = '[notaclock]';
+const CLOCK_TICK_MS = 15000;
 
 function getFullscreenElement() {
   return document.fullscreenElement || document.webkitFullscreenElement || null;
@@ -60,20 +58,6 @@ function setLocalVote(imageId, vote) {
   localStorage.removeItem(feedbackKey(imageId));
 }
 
-function getVisitorId() {
-  const existing = localStorage.getItem(VISITOR_ID_KEY);
-
-  if (existing) {
-    return existing;
-  }
-
-  const nextId = globalThis.crypto?.randomUUID
-    ? globalThis.crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  localStorage.setItem(VISITOR_ID_KEY, nextId);
-  return nextId;
-}
-
 function normalizeRefreshInterval(nextMinutes, interval = { min: 5, max: 60, step: 5, default: 5 }) {
   const min = interval.min ?? 5;
   const max = interval.max ?? 60;
@@ -101,27 +85,100 @@ function isInteractiveElement(target) {
   return Boolean(target?.closest?.('button, select, input, textarea, label, a, .info-card, .source-card'));
 }
 
-function isAdminView() {
-  const params = new URLSearchParams(window.location.search);
-  return window.location.hash === '#admin' || params.has('admin');
-}
-
-async function fetchJson(path) {
-  const response = await fetch(`${API_BASE}${path}`);
-
-  if (!response.ok) {
-    throw new Error(`Request failed with ${response.status}`);
+function getClockParts(date, timeZone) {
+  if (!timeZone) {
+    return {
+      hour: date.getHours(),
+      minute: date.getMinutes()
+    };
   }
 
-  return response.json();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
+
+  return {
+    hour: Number.parseInt(parts.hour, 10),
+    minute: Number.parseInt(parts.minute, 10)
+  };
+}
+
+function getClockMinute(date = new Date(), timeZone = '') {
+  const { hour, minute } = getClockParts(date, timeZone);
+
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return 0;
+  }
+
+  return (hour % 12) * 60 + minute;
+}
+
+function normalizeSlotMinute(record) {
+  const value = Number.parseInt(record?.slotMinute, 10);
+
+  if (Number.isFinite(value)) {
+    return ((value % 720) + 720) % 720;
+  }
+
+  const match = String(record?.displaySlotKey || '').match(/^(\d{2})(\d{2})$/);
+
+  if (!match) {
+    return 0;
+  }
+
+  return Number.parseInt(match[1], 10) * 60 + Number.parseInt(match[2], 10);
+}
+
+function sortBySlot(images) {
+  return [...images].sort((left, right) => normalizeSlotMinute(left) - normalizeSlotMinute(right));
+}
+
+function findCurrentImage(images, config, date = new Date()) {
+  if (!images.length) {
+    return null;
+  }
+
+  const currentMinute = getClockMinute(date, config?.timezone || '');
+  const sorted = sortBySlot(images);
+  let selected = sorted[sorted.length - 1];
+
+  for (const image of sorted) {
+    if (normalizeSlotMinute(image) > currentMinute) {
+      break;
+    }
+
+    selected = image;
+  }
+
+  return selected;
+}
+
+function buildCycleHistory(images, currentImage) {
+  const sorted = sortBySlot(images);
+
+  if (!currentImage) {
+    return [...sorted].reverse();
+  }
+
+  const currentMinute = normalizeSlotMinute(currentImage);
+  const beforeOrCurrent = sorted.filter((image) => normalizeSlotMinute(image) <= currentMinute).reverse();
+  const after = sorted.filter((image) => normalizeSlotMinute(image) > currentMinute).reverse();
+
+  return [...beforeOrCurrent, ...after];
 }
 
 export default function App() {
   const [config, setConfig] = useState(null);
+  const [catalogImages, setCatalogImages] = useState([]);
   const [images, setImages] = useState([]);
   const [displayedImage, setDisplayedImage] = useState(null);
   const [live, setLive] = useState(true);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [loadError, setLoadError] = useState('');
   const [refreshIntervalMinutes, setRefreshIntervalMinutes] = useState(() =>
     Number.parseInt(localStorage.getItem('refreshIntervalMinutes') || '5', 10)
   );
@@ -132,6 +189,7 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
   const stageRef = useRef(null);
+  const catalogRef = useRef([]);
   const lastTransitionAtRef = useRef(0);
   const stateRef = useRef({});
   const dragRef = useRef({
@@ -141,7 +199,9 @@ export default function App() {
     active: false
   });
 
+  catalogRef.current = catalogImages;
   stateRef.current = {
+    catalogImages,
     images,
     displayedImage,
     live,
@@ -178,70 +238,43 @@ export default function App() {
     setDisplayedImage(record);
   }
 
-  function maybeAdvanceLive(latestImage) {
+  function refreshStaticClock(options = {}) {
+    const catalog = catalogRef.current;
+
+    if (!catalog.length) {
+      return null;
+    }
+
     const snapshot = stateRef.current;
-    const latest = latestImage || snapshot.images[0];
-
-    if (!snapshot.live || !latest) {
-      return;
-    }
-
-    if (!snapshot.displayedImage) {
-      setHistoryIndex(0);
-      transitionTo(latest, { force: true });
-      return;
-    }
-
-    const enoughTimePassed = Date.now() - lastTransitionAtRef.current >= snapshot.refreshIntervalMinutes * 60 * 1000;
-
-    if (latest.id !== snapshot.displayedImage.id && enoughTimePassed) {
-      setHistoryIndex(0);
-      transitionTo(latest);
-    }
-  }
-
-  async function refreshHistory() {
-    const payload = await fetchJson(`/api/images?limit=${HISTORY_LIMIT}`);
-    const nextImages = payload.images || [];
-    const snapshot = stateRef.current;
-    const nextHistoryIndex = snapshot.historyIndex > nextImages.length - 1 ? 0 : snapshot.historyIndex;
+    const currentImage = findCurrentImage(catalog, config);
+    const nextImages = buildCycleHistory(catalog, currentImage);
+    const displayedIndex = snapshot.displayedImage
+      ? nextImages.findIndex((image) => image.id === snapshot.displayedImage.id)
+      : -1;
 
     setImages(nextImages);
-    setHistoryIndex(nextHistoryIndex);
 
-    if (!snapshot.displayedImage && nextImages[0]) {
-      transitionTo(nextImages[0], { force: true });
+    if (snapshot.displayedImage && displayedIndex >= 0 && displayedIndex !== snapshot.historyIndex) {
+      setHistoryIndex(displayedIndex);
+    } else if (snapshot.historyIndex > nextImages.length - 1) {
+      setHistoryIndex(0);
     }
 
-    maybeAdvanceLive(nextImages[0]);
-    return {
-      ...payload,
-      images: nextImages
-    };
-  }
-
-  async function refreshCurrent() {
-    const payload = await fetchJson('/api/images/current');
-    const current = payload.image;
-
-    if (!current) {
-      return;
+    if (!snapshot.displayedImage && currentImage) {
+      setHistoryIndex(0);
+      transitionTo(currentImage, { force: true });
+      return currentImage;
     }
 
-    const snapshot = stateRef.current;
+    const enoughTimePassed =
+      options.force || Date.now() - lastTransitionAtRef.current >= snapshot.refreshIntervalMinutes * 60 * 1000;
 
-    setImages((currentImages) =>
-      currentImages[0]?.id === current.id
-        ? [current, ...currentImages.slice(1)]
-        : [current, ...currentImages.filter((image) => image.id !== current.id)]
-    );
-
-    if (snapshot.displayedImage?.id === current.id) {
-      setDisplayedImage(current);
+    if (snapshot.live && currentImage && enoughTimePassed && currentImage.id !== snapshot.displayedImage?.id) {
+      setHistoryIndex(0);
+      transitionTo(currentImage);
     }
 
-    maybeAdvanceLive(current);
-    return payload;
+    return currentImage;
   }
 
   function stepHistory(direction) {
@@ -288,19 +321,11 @@ export default function App() {
     }
 
     setHistoryIndex(index);
-    setLive(true);
+    setLive(index === 0);
     transitionTo(nextImage, { force: true });
   }
 
-  function updateImageRecord(updatedImage) {
-    setImages((currentImages) => currentImages.map((image) => (image.id === updatedImage.id ? updatedImage : image)));
-
-    if (stateRef.current.displayedImage?.id === updatedImage.id) {
-      setDisplayedImage(updatedImage);
-    }
-  }
-
-  async function sendFeedback(vote) {
+  function sendFeedback(vote) {
     const record = stateRef.current.displayedImage;
 
     if (!record) {
@@ -311,35 +336,6 @@ export default function App() {
     const nextVote = previousVote === vote ? null : vote;
     setLocalVote(record.id, nextVote);
     setLocalVoteVersion((version) => version + 1);
-
-    try {
-      const response = await fetch(`${API_BASE}/api/images/${encodeURIComponent(record.id)}/feedback`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          vote: nextVote,
-          previousVote,
-          visitorId: getVisitorId()
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Feedback failed with ${response.status}`);
-      }
-
-      const payload = await response.json();
-      const updatedImage = payload.image;
-
-      if (updatedImage) {
-        updateImageRecord(updatedImage);
-      }
-    } catch (error) {
-      setLocalVote(record.id, previousVote);
-      setLocalVoteVersion((version) => version + 1);
-      logWarning(error.message);
-    }
   }
 
   function handleRefreshIntervalChange(nextMinutes) {
@@ -448,42 +444,47 @@ export default function App() {
 
     async function init() {
       try {
-        logInfo(`app booting, reaching out to server at ${API_BASE}`);
-        const configPayload = await fetchJson('/api/config');
+        logInfo('app booting from static catalog');
+        const catalog = await loadStaticCatalog();
 
         if (cancelled) {
           return;
         }
 
-        const interval = configPayload.refreshInterval;
+        const interval = catalog.refreshInterval || { min: 5, max: 60, step: 5, default: 5 };
         const clamped = normalizeRefreshInterval(refreshIntervalMinutes, interval);
-        setConfig(configPayload);
+        const nextConfig = {
+          timezone: import.meta.env.VITE_CLOCK_TIMEZONE || catalog.timezone || '',
+          clockFormat: catalog.clockFormat || '12h',
+          imageSize: 1024,
+          refreshInterval: interval,
+          coverage: catalog.coverage,
+          staticMode: true
+        };
+        const nextCatalogImages = sortBySlot(catalog.images || []);
+        const currentImage = findCurrentImage(nextCatalogImages, nextConfig);
+        const nextImages = buildCycleHistory(nextCatalogImages, currentImage);
+
+        catalogRef.current = nextCatalogImages;
+        setCatalogImages(nextCatalogImages);
+        setImages(nextImages);
+        setConfig(nextConfig);
         setRefreshIntervalMinutes(clamped);
+        setLoadError('');
+        setHistoryIndex(0);
         localStorage.setItem('refreshIntervalMinutes', String(clamped));
-        const currentPayload = await refreshCurrent();
 
-        if (cancelled) {
-          return;
+        if (currentImage) {
+          transitionTo(currentImage, { force: true });
         }
 
-        logInfo('latest image ready', {
-          minuteKey: currentPayload?.image?.minuteKey ?? null
-        });
-
-        const historyPayload = await refreshHistory();
-
-        if (cancelled) {
-          return;
-        }
-
-        const serverImageCount = historyPayload.total ?? historyPayload.images.length;
-        const latest = historyPayload.images[0];
-        logInfo(`server has ${serverImageCount} images already generated, grabbing the latest`, {
-          returned: historyPayload.returned ?? historyPayload.images.length,
-          latestMinuteKey: historyPayload.latestMinuteKey ?? latest?.minuteKey ?? null
+        logInfo(`static catalog ready with ${nextCatalogImages.length} clock slots`, {
+          currentSlot: currentImage?.displaySlotKey ?? null,
+          maxInterval: catalog.coverage?.maxMinutesBetweenCoveredSlots ?? null
         });
       } catch (error) {
-        logWarning(`Could not load the API: ${error.message}`);
+        setLoadError(error.message);
+        logWarning(`Could not load the static catalog: ${error.message}`);
       }
     }
 
@@ -495,22 +496,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const currentPollId = window.setInterval(() => {
-      void refreshCurrent().catch((error) => {
-        logWarning(`Current image check failed: ${error.message}`);
-      });
-    }, 15000);
-    const historyPollId = window.setInterval(() => {
-      void refreshHistory().catch((error) => {
-        logWarning(`History refresh failed: ${error.message}`);
-      });
-    }, 60000);
+    if (!catalogImages.length) {
+      return undefined;
+    }
+
+    const clockId = window.setInterval(() => {
+      refreshStaticClock();
+    }, CLOCK_TICK_MS);
 
     return () => {
-      window.clearInterval(currentPollId);
-      window.clearInterval(historyPollId);
+      window.clearInterval(clockId);
     };
-  }, []);
+  }, [catalogImages.length, config, refreshIntervalMinutes]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -564,18 +561,6 @@ export default function App() {
   const selectedIndex = getHistoryIndex({ displayedImage, images, live, historyIndex });
   const localVote = getLocalVote(displayedImage?.id) || null;
 
-  if (isAdminView()) {
-    return (
-      <Admin
-        apiBase={API_BASE}
-        config={config}
-        images={images}
-        onImageUpdated={updateImageRecord}
-        onRefreshHistory={refreshHistory}
-      />
-    );
-  }
-
   return (
     <main className="stage" ref={stageRef}>
       <div
@@ -587,7 +572,9 @@ export default function App() {
         onPointerUp={handleStagePointerUp}
       >
         <ClockImage image={displayedImage} />
-        {!displayedImage && <p className="stage__message">next image generating...</p>}
+        {!displayedImage && (
+          <p className="stage__message">{loadError ? `catalog unavailable: ${loadError}` : 'loading image catalog...'}</p>
+        )}
         {fullscreenAvailable && (
           <button
             aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
