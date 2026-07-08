@@ -3,17 +3,17 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "client",
-    "server"
+    "client"
   ],
   "scripts": {
-    "dev": "node ./scripts/dev.mjs",
+    "start": "npm --workspace client run dev",
+    "dev": "npm start",
     "dev:client": "npm --workspace client run dev",
-    "dev:server": "npm --workspace server run dev",
-    "build": "npm run build:server && npm run build:client",
-    "build:client": "npm --workspace client run build",
-    "build:server": "npm --workspace server run build",
-    "start": "npm --workspace server run start"
+    "preview": "npm --workspace client run preview",
+    "download:hosted-images": "node scripts/download-hosted-images.mjs",
+    "build:static-media": "node scripts/build-static-media.mjs",
+    "build": "npm run build:client",
+    "build:client": "npm --workspace client run build"
   },
   "engines": {
     "node": "20.x"
